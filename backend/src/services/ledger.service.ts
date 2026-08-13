@@ -74,3 +74,94 @@ export const writeTxn = async (
 
   return updatedWallet;
 };
+
+export const lockFunds = async (
+  uid: string,
+  amount: number,
+  meta: TxnMeta,
+  idempotencyKey: string,
+  session: mongoose.ClientSession
+) => {
+  const alreadyProcessed = await isKeyUsed(idempotencyKey, session);
+  if (alreadyProcessed) throw new Error('Idempotency error: This transaction has already been processed.');
+
+  const wallet = await Wallet.findOne({ uid }).session(session);
+  if (!wallet) throw new Error('Wallet not found');
+
+  if (wallet.availableBalance - amount < 0) {
+    throw new Error('Insufficient available balance');
+  }
+
+  const updatedWallet = await Wallet.findOneAndUpdate(
+    { uid },
+    { $inc: { availableBalance: -amount, lockedBalance: amount } },
+    { new: true, session }
+  );
+
+  if (!updatedWallet) throw new Error('Failed to update wallet');
+
+  await WalletTransaction.create(
+    [{
+      uid,
+      type: 'withdrawal',
+      amount: -amount,
+      balanceAfter: updatedWallet.availableBalance,
+      description: meta.description + ' (Funds Locked)',
+      referenceId: meta.referenceId,
+      idempotencyKey,
+    }],
+    { session }
+  );
+
+  return updatedWallet;
+};
+
+export const resolveLockedFunds = async (
+  uid: string,
+  amount: number,
+  action: 'paid' | 'refunded',
+  meta: TxnMeta,
+  idempotencyKey: string,
+  session: mongoose.ClientSession
+) => {
+  const alreadyProcessed = await isKeyUsed(idempotencyKey, session);
+  if (alreadyProcessed) throw new Error('Idempotency error: This transaction has already been processed.');
+
+  const wallet = await Wallet.findOne({ uid }).session(session);
+  if (!wallet) throw new Error('Wallet not found');
+
+  if (wallet.lockedBalance - amount < 0) {
+    throw new Error('Insufficient locked balance to resolve');
+  }
+
+  const updateQuery = action === 'paid' 
+    ? { $inc: { lockedBalance: -amount } } 
+    : { $inc: { lockedBalance: -amount, availableBalance: amount } };
+
+  const updatedWallet = await Wallet.findOneAndUpdate(
+    { uid },
+    updateQuery,
+    { new: true, session }
+  );
+
+  if (!updatedWallet) throw new Error('Failed to update wallet');
+
+  if (action === 'refunded') {
+    await WalletTransaction.create(
+      [{
+        uid,
+        type: 'refund',
+        amount: amount,
+        balanceAfter: updatedWallet.availableBalance,
+        description: meta.description + ' (Withdrawal Rejected/Refunded)',
+        referenceId: meta.referenceId,
+        idempotencyKey,
+      }],
+      { session }
+    );
+  } else {
+    // Optional: Log a 'paid' event, but it doesn't affect availableBalance so we skip it to avoid confusing the transaction ledger which tracks available balance changes.
+  }
+
+  return updatedWallet;
+};
