@@ -50,12 +50,15 @@ export const updateTournament = async (req: AuthRequest, res: Response) => {
 };
 
 export const changeTournamentLifecycle = async (req: AuthRequest, res: Response) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
     const { matchId } = req.params;
     const { action } = req.body; 
 
-    const match = await Match.findById(matchId);
-    if (!match) return res.status(404).json({ success: false, message: 'Tournament not found' });
+    const match = await Match.findById(matchId).session(session);
+    if (!match) throw new Error('Tournament not found');
 
     let newStatus = match.status;
     switch (action) {
@@ -65,16 +68,41 @@ export const changeTournamentLifecycle = async (req: AuthRequest, res: Response)
       case 'start': newStatus = 'started'; break;
       case 'complete': newStatus = 'completed'; break;
       case 'cancel': newStatus = 'cancelled'; break;
-      default: return res.status(400).json({ success: false, message: 'Invalid lifecycle action' });
+      default: throw new Error('Invalid lifecycle action');
+    }
+
+    if (action === 'cancel' && match.status !== 'cancelled') {
+      // Refund all participants
+      const participants = await MatchParticipant.find({ matchId, status: 'joined' }).session(session);
+      for (const p of participants) {
+        if (p.entryFeePaid > 0) {
+          await writeTxn(
+            p.uid,
+            'refund',
+            p.entryFeePaid, // Credit back
+            { description: `Refund for cancelled tournament: ${match.title}`, referenceId: match._id.toString() },
+            `refund_${match._id.toString()}_${p.uid}`,
+            session
+          );
+        }
+        p.status = 'refunded';
+        await p.save({ session });
+      }
     }
 
     match.status = newStatus as any;
-    await match.save();
+    await match.save({ session });
 
     await writeAuditLog(req.user!.uid, `lifecycle_${action}`, { matchId: match._id, status: newStatus }, match._id.toString(), 'Match');
+    
+    await session.commitTransaction();
+    session.endSession();
+
     res.status(200).json({ success: true, match });
   } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
+    await session.abortTransaction();
+    session.endSession();
+    res.status(400).json({ success: false, message: error.message });
   }
 };
 

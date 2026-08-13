@@ -7,6 +7,10 @@ export interface IMatchParticipant extends Document {
   entryFeePaid: number;
   status: 'joined' | 'disqualified' | 'refunded';
   joinedAt: Date;
+  kills?: number;
+  placement?: number;
+  points?: number;
+  prizeWon?: number;
 }
 
 const MatchParticipantSchema = new Schema<IMatchParticipant>(
@@ -17,6 +21,10 @@ const MatchParticipantSchema = new Schema<IMatchParticipant>(
     entryFeePaid: { type: Number, required: true },
     status: { type: String, enum: ['joined', 'disqualified', 'refunded'], default: 'joined' },
     joinedAt: { type: Date, default: Date.now },
+    kills: { type: Number, default: 0 },
+    placement: { type: Number },
+    points: { type: Number, default: 0 },
+    prizeWon: { type: Number, default: 0 },
   },
   { timestamps: true }
 );
