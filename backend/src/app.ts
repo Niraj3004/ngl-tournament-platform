@@ -4,6 +4,7 @@ import morgan from 'morgan';
 import { errorHandler, notFound } from './middlewares/error.middleware';
 
 import authRoutes from './auth/index';
+import tournamentRoutes from './tournaments/index';
 
 const app = express();
 
@@ -14,6 +15,7 @@ app.use(morgan('dev'));
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/tournaments', tournamentRoutes);
 
 // Basic route
 app.get('/api/health', (req, res) => {
