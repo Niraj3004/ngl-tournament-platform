@@ -3,8 +3,7 @@ import cors from 'cors';
 import morgan from 'morgan';
 import { errorHandler, notFound } from './middlewares/error.middleware';
 
-import authRoutes from './auth/index';
-import tournamentRoutes from './tournaments/index';
+import apiRoutes from './routes/index';
 
 const app = express();
 
@@ -14,8 +13,7 @@ app.use(express.json());
 app.use(morgan('dev'));
 
 // Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/tournaments', tournamentRoutes);
+app.use('/api', apiRoutes);
 
 // Basic route
 app.get('/api/health', (req, res) => {

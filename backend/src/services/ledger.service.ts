@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import { Wallet } from '../models/wallet.model';
 import { WalletTransaction } from '../models/walletTransaction.model';
-import { isKeyUsed } from './idempotency';
+import { isKeyUsed } from './idempotency.service';
 
 export interface TxnMeta {
   description: string;
