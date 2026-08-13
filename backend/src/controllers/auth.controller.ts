@@ -10,8 +10,6 @@ import bcrypt from 'bcryptjs';
 
 export const sendOtp = async (req: Request, res: Response) => {
   const { email } = req.body;
-  if (!email) return res.status(400).json({ success: false, message: 'Email address is required' });
-
   const normalizedEmail = email.toLowerCase();
   
   // Clear any existing verification OTPs for this email to prevent spam
@@ -29,9 +27,7 @@ export const sendOtp = async (req: Request, res: Response) => {
 };
 
 export const verifyOtp = async (req: Request, res: Response) => {
-  const { email, otp, password, displayName } = req.body;
-  if (!email || !otp) return res.status(400).json({ success: false, message: 'Email and OTP are required' });
-
+  const { email, otp, password, displayName, gameId } = req.body;
   const normalizedEmail = email.toLowerCase();
   
   // Check against DB instead of memory
@@ -48,9 +44,9 @@ export const verifyOtp = async (req: Request, res: Response) => {
     let isNewUser = false;
 
     if (!user) {
-      // It's a new registration, so we require a password
-      if (!password) {
-        return res.status(400).json({ success: false, message: 'Password is required to register a new account' });
+      // It's a new registration, so we require a password, displayName, and gameId
+      if (!password || !displayName || !gameId) {
+        return res.status(400).json({ success: false, message: 'Password, Display Name, and Free Fire UID are required to register a new account' });
       }
 
       isNewUser = true;
@@ -64,6 +60,7 @@ export const verifyOtp = async (req: Request, res: Response) => {
         email: normalizedEmail, 
         password: hashedPassword,
         displayName,
+        gameId, // Save the Free Fire UID!
         role: 'player', 
         status: 'active', 
         eligibilityStatus: 'pending' 
@@ -87,7 +84,6 @@ export const verifyOtp = async (req: Request, res: Response) => {
 
 export const login = async (req: Request, res: Response) => {
   const { email, password } = req.body;
-  if (!email || !password) return res.status(400).json({ success: false, message: 'Email and password are required' });
 
   try {
     const user = await User.findOne({ email: email.toLowerCase() });
@@ -122,8 +118,6 @@ export const logout = async (req: Request, res: Response) => {
 
 export const forgotPassword = async (req: Request, res: Response) => {
   const { email } = req.body;
-  if (!email) return res.status(400).json({ success: false, message: 'Email is required' });
-
   const normalizedEmail = email.toLowerCase();
   const user = await User.findOne({ email: normalizedEmail });
   if (!user) return res.status(404).json({ success: false, message: 'User not found' });
@@ -143,8 +137,6 @@ export const forgotPassword = async (req: Request, res: Response) => {
 
 export const resetPassword = async (req: Request, res: Response) => {
   const { email, otp, newPassword } = req.body;
-  if (!email || !otp || !newPassword) return res.status(400).json({ success: false, message: 'Email, OTP, and new password are required' });
-
   const normalizedEmail = email.toLowerCase();
   
   const otpRecord = await Otp.findOne({ email: normalizedEmail, otp, type: 'reset' });
