@@ -2,8 +2,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IUser extends Document {
   uid: string; // Unique identifier (from Firebase initially, now just a UUID or MongoDB ObjectId string)
-  phone: string;
-  countryCode: string;
+  email: string;
   displayName?: string;
   dateOfBirth?: Date;
   gameId?: string;
@@ -22,8 +21,7 @@ export interface IUser extends Document {
 const UserSchema = new Schema<IUser>(
   {
     uid: { type: String, required: true, unique: true },
-    phone: { type: String, required: true, unique: true },
-    countryCode: { type: String, required: true, default: '+977' },
+    email: { type: String, required: true, unique: true },
     displayName: { type: String },
     dateOfBirth: { type: Date },
     gameId: { type: String },
