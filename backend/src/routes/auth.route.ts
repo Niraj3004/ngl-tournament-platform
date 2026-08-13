@@ -1,3 +1,4 @@
+import { Router } from 'express';
 import { sendOtp, verifyOtp, login, logout, forgotPassword, resetPassword } from '../controllers/auth.controller';
 import { validate } from '../middlewares/validate.middleware';
 import { sendOtpSchema, verifyOtpSchema, loginSchema, forgotPasswordSchema, resetPasswordSchema } from '../validators/auth.validator';
