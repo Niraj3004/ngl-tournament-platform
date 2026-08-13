@@ -1,6 +1,7 @@
 import app from './app';
 import { connectDB } from './config/db';
 import { env } from './config/env';
+import { logger } from './utils/logger';
 
 const startServer = async () => {
   try {
@@ -9,10 +10,10 @@ const startServer = async () => {
 
     // Start Express server
     app.listen(env.port, () => {
-      console.log(`Server running in ${env.nodeEnv} mode on port ${env.port}`);
+      logger.info(`Server running in ${env.nodeEnv} mode on port ${env.port}`);
     });
   } catch (error) {
-    console.error('Failed to start server:', error);
+    logger.error(`Failed to start server: ${error}`);
     process.exit(1);
   }
 };
