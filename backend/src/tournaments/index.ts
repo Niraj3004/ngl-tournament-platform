@@ -1,11 +1,50 @@
-import { Router, Response } from 'express';
+import { Router, Response, Request } from 'express';
 import { requireAuth, requireAdmin, AuthRequest } from '../lib/guards';
 import { Match } from '../models/match.model';
 import { writeAuditLog } from '../lib/audit';
 
 const router = Router();
 
-// Apply admin guards to all routes in this file
+/**
+ * @route GET /api/tournaments
+ * @desc Public route to fetch all tournaments (hides room details)
+ */
+router.get('/', async (req: Request, res: Response) => {
+  try {
+    // Exclude roomDetails for public listing
+    const matches = await Match.find({}).select('-roomDetails').sort({ matchTime: 1 });
+    res.status(200).json({ success: true, matches });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * @route GET /api/tournaments/:matchId
+ * @desc Public route to fetch a single tournament details
+ */
+router.get('/:matchId', async (req: Request, res: Response) => {
+  try {
+    const { matchId } = req.params;
+    
+    // Note: If the room is revealed and the user is joined, we should ideally show roomDetails.
+    // For now, in the public route without auth, we strictly hide roomDetails.
+    // The room reveal logic for eligible participants will be handled in B7 (My Matches & room reveal).
+    const match = await Match.findById(matchId).select('-roomDetails');
+    
+    if (!match) {
+      return res.status(404).json({ success: false, message: 'Tournament not found' });
+    }
+
+    res.status(200).json({ success: true, match });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// ==========================================
+// ADMIN ROUTES BELOW
+// ==========================================
 router.use(requireAuth, requireAdmin);
 
 /**
