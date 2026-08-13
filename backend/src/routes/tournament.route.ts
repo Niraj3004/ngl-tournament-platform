@@ -5,7 +5,8 @@ import {
   getTournamentById, 
   createTournament, 
   updateTournament, 
-  changeTournamentLifecycle 
+  changeTournamentLifecycle,
+  joinTournament
 } from '../controllers/tournament.controller';
 
 const router = Router();
@@ -13,6 +14,9 @@ const router = Router();
 // Public routes
 router.get('/', getAllTournaments);
 router.get('/:matchId', getTournamentById);
+
+// Player routes
+router.post('/:matchId/join', requireAuth, joinTournament);
 
 // Admin routes
 router.post('/', requireAuth, requireAdmin, createTournament);
