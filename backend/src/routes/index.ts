@@ -5,6 +5,7 @@ import depositRoutes from './deposit.route';
 import paymentCodeRoutes from './paymentCode.route';
 import withdrawalRoutes from './withdrawal.route';
 import resultRoutes from './result.route';
+import adminRoutes from './admin.route';
 
 const router = Router();
 
@@ -14,5 +15,6 @@ router.use('/tournaments/:matchId', resultRoutes);
 router.use('/deposits', depositRoutes);
 router.use('/payment-codes', paymentCodeRoutes);
 router.use('/withdrawals', withdrawalRoutes);
+router.use('/admin', adminRoutes);
 
 export default router;
