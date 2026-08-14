@@ -81,7 +81,7 @@ export default function Navbar() {
         <div className={styles.actions}>
           {user ? (
             <div className={styles.userMenu}>
-              <Link href="/dashboard" className={styles.notificationBell}>
+              <Link href="/notifications" className={styles.notificationBell}>
                 🔔
                 {unreadCount > 0 && (
                   <span className={styles.notificationBadge}>{unreadCount}</span>

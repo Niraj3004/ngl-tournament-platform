@@ -17,6 +17,7 @@ export interface IUser extends Document {
   eligibilityStatus: 'pending' | 'eligible' | 'ineligible';
   ageVerified: boolean;
   kycStatus: 'none' | 'pending' | 'approved' | 'rejected';
+  referralCode?: string;
 }
 
 const UserSchema = new Schema<IUser>(
@@ -36,6 +37,7 @@ const UserSchema = new Schema<IUser>(
     eligibilityStatus: { type: String, enum: ['pending', 'eligible', 'ineligible'], default: 'pending' },
     ageVerified: { type: Boolean, default: false },
     kycStatus: { type: String, enum: ['none', 'pending', 'approved', 'rejected'], default: 'none' },
+    referralCode: { type: String, unique: true, sparse: true },
   },
   { timestamps: true }
 );

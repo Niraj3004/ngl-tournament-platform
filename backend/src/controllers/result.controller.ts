@@ -1,9 +1,10 @@
-import { Response } from 'express';
+import { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import { Match } from '../models/match.model';
 import { MatchParticipant } from '../models/matchParticipant.model';
 import { writeTxn } from '../services/ledger.service';
 import { AuthRequest } from '../middlewares/auth.middleware';
+import { Dispute } from '../models/dispute.model';
 
 // Free Fire Standard Placement Points
 const PLACEMENT_POINTS: Record<number, number> = {
@@ -105,5 +106,40 @@ export const publishResults = async (req: AuthRequest, res: Response) => {
     await session.abortTransaction();
     session.endSession();
     res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+export const getMatchResults = async (req: Request, res: Response) => {
+  try {
+    const { matchId } = req.params;
+    const match = await Match.findById(matchId).select('title status');
+    if (!match) return res.status(404).json({ success: false, message: 'Match not found' });
+
+    const participants = await MatchParticipant.find({ matchId, status: 'joined' })
+      .sort({ points: -1, kills: -1 })
+      .select('uid gameId kills placement points prizeWon');
+    
+    res.status(200).json({ success: true, match, results: participants });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const submitDispute = async (req: AuthRequest, res: Response) => {
+  try {
+    const { matchId } = req.params;
+    const { reason, description, evidenceUrls } = req.body;
+
+    const dispute = await Dispute.create({
+      matchId,
+      uid: req.user!.uid,
+      reason,
+      description,
+      evidenceUrls: evidenceUrls || []
+    });
+
+    res.status(201).json({ success: true, dispute });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
   }
 };

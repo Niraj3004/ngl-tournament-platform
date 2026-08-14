@@ -104,6 +104,8 @@ export default function DashboardPage() {
                 <div className={styles.actions}>
                   <Link href="/wallet" className="btn-primary" style={{ textAlign: 'center' }}>Manage Wallet</Link>
                   <Link href="/tournaments" className="btn-secondary" style={{ textAlign: 'center' }}>Find Matches</Link>
+                  <Link href="/referrals" className="btn-secondary" style={{ textAlign: 'center' }}>Refer & Earn</Link>
+                  <Link href="/support" className="btn-secondary" style={{ textAlign: 'center' }}>Help & Support</Link>
                 </div>
               </div>
             </div>
