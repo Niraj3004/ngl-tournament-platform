@@ -11,10 +11,8 @@ import ParticleBackground from '@/components/ParticleBackground';
 import styles from './page.module.css';
 
 export default function DashboardPage() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, wallet, loading: authLoading } = useAuth();
   const router = useRouter();
-
-  const [wallet, setWallet] = useState<any>(null);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -28,12 +26,7 @@ export default function DashboardPage() {
     if (user) {
       const fetchData = async () => {
         try {
-          const [walletRes, notifRes] = await Promise.all([
-            api.get('/wallet'),
-            api.get('/notifications')
-          ]);
-
-          if (walletRes.success) setWallet(walletRes.wallet);
+          const notifRes = await api.get('/notifications');
           if (notifRes.success) setNotifications(notifRes.notifications);
         } catch (error) {
           console.error(error);

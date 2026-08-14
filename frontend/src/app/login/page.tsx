@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -16,9 +16,11 @@ export default function LoginPage() {
   const router = useRouter();
   const { loginUser, user } = useAuth();
 
-  if (user && typeof window !== 'undefined') {
-    router.push('/dashboard');
-  }
+  useEffect(() => {
+    if (user && typeof window !== 'undefined') {
+      router.push('/dashboard');
+    }
+  }, [user, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     if (!email || !password) {
