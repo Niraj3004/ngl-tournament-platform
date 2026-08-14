@@ -158,3 +158,33 @@ export const resetPassword = async (req: Request, res: Response) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+export const getMe = async (req: Request, res: Response) => {
+  try {
+    const uid = (req as any).user.uid;
+    const user = await User.findOne({ uid }).select('-password');
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    
+    const wallet = await Wallet.findOne({ uid });
+    
+    res.status(200).json({ 
+      success: true, 
+      user: {
+        uid: user.uid,
+        email: user.email,
+        displayName: user.displayName,
+        gameId: user.gameId,
+        role: user.role,
+        status: user.status
+      },
+      wallet: wallet ? {
+        availableBalance: wallet.availableBalance,
+        lockedBalance: wallet.lockedBalance
+      } : { availableBalance: 0, lockedBalance: 0 }
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};

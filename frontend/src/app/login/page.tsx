@@ -4,20 +4,41 @@ import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import styles from './page.module.css';
+import { api } from '@/lib/api';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [sent, setSent] = useState(false);
+  const [error, setError] = useState('');
+  const router = useRouter();
+  const { loginUser, user } = useAuth();
+
+  if (user && typeof window !== 'undefined') {
+    router.push('/dashboard');
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+    if (!email || !password) {
+      setError('Please enter both email and password');
+      return;
+    }
     setLoading(true);
-    // TODO: call api.post('/auth/request-otp', { email })
-    setTimeout(() => {
+    setError('');
+    
+    try {
+      const res = await api.post('/auth/login', { email, password }, false);
+      if (res.success && res.token) {
+        loginUser(res.token, res.user);
+        router.push('/dashboard');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Invalid email or password');
+    } finally {
       setLoading(false);
-      setSent(true);
-    }, 1200);
+    }
   };
 
   return (
@@ -37,12 +58,11 @@ export default function LoginPage() {
                 <div className={styles.cardIcon}>🎯</div>
                 <h1 className={styles.cardTitle}>Welcome Back</h1>
                 <p className={styles.cardSubtitle}>
-                  Enter your email to receive a one-time login code
+                  Enter your email and password to access your account
                 </p>
               </div>
 
-              {!sent ? (
-                <form className={styles.form} onSubmit={handleSubmit}>
+              <form className={styles.form} onSubmit={handleSubmit}>
                   <div className={styles.fieldGroup}>
                     <label className={styles.label} htmlFor="email">Email Address</label>
                     <input
@@ -57,6 +77,21 @@ export default function LoginPage() {
                     />
                   </div>
 
+                  <div className={styles.fieldGroup}>
+                    <label className={styles.label} htmlFor="password">Password</label>
+                    <input
+                      id="password"
+                      type="password"
+                      className={styles.input}
+                      placeholder="Enter your password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+                  
+                  {error && <p className={styles.errorMsg} style={{ color: 'var(--danger)', fontSize: '0.85rem' }}>⚠ {error}</p>}
+
                   <button
                     id="send-otp-btn"
                     type="submit"
@@ -70,18 +105,6 @@ export default function LoginPage() {
                     )}
                   </button>
                 </form>
-              ) : (
-                <div className={styles.successBox}>
-                  <div className={styles.successIcon}>✅</div>
-                  <h3 className={styles.successTitle}>Code Sent!</h3>
-                  <p className={styles.successText}>
-                    Check your inbox at <strong>{email}</strong> for the 6-digit OTP.
-                  </p>
-                  <Link href={`/verify-otp?email=${encodeURIComponent(email)}`} className={`btn-primary ${styles.submitBtn}`}>
-                    Enter OTP →
-                  </Link>
-                </div>
-              )}
 
               <div className={styles.divider}><span>OR</span></div>
 
@@ -98,10 +121,10 @@ export default function LoginPage() {
               JOIN THE <span className="glow-orange">BATTLE</span>
             </h2>
             <p className={styles.infoPanelText}>
-              Secure, passwordless login. No passwords to forget, no security risks.
+              Secure login with your password. Access your wallet, enter tournaments, and win big!
             </p>
             <div className={styles.infoBullets}>
-              {['No password needed', 'Instant OTP login', 'Secure & encrypted', 'Wallet protected'].map(b => (
+              {['Fast login', 'Secure & encrypted', 'Wallet protected'].map(b => (
                 <div key={b} className={styles.infoBullet}>
                   <span className={styles.bulletDot} />
                   {b}

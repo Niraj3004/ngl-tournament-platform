@@ -18,12 +18,26 @@ const buildHeaders = (includeAuth = true) => {
   return headers;
 };
 
+const handleResponse = async (res: Response) => {
+  if (res.status === 401 && typeof window !== 'undefined') {
+    clearToken();
+    if (!window.location.pathname.includes('/login')) {
+      window.location.href = '/login';
+    }
+  }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.message || 'API Error');
+  }
+  return data;
+};
+
 export const api = {
   get: async (path: string, auth = true) => {
     const res = await fetch(`${NEXT_PUBLIC_API_URL}${path}`, {
       headers: buildHeaders(auth),
     });
-    return res.json();
+    return handleResponse(res);
   },
 
   post: async (path: string, body: unknown, auth = true) => {
@@ -32,7 +46,7 @@ export const api = {
       headers: buildHeaders(auth),
       body: JSON.stringify(body),
     });
-    return res.json();
+    return handleResponse(res);
   },
 
   put: async (path: string, body: unknown, auth = true) => {
@@ -41,7 +55,7 @@ export const api = {
       headers: buildHeaders(auth),
       body: JSON.stringify(body),
     });
-    return res.json();
+    return handleResponse(res);
   },
 };
 

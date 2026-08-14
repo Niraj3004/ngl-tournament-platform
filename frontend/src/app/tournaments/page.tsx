@@ -5,14 +5,8 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import styles from './page.module.css';
 
-const ALL_TOURNAMENTS = [
-  { id: '1', title: 'Solo Ranked Championship', mode: 'Solo', entryFee: 50, prizePool: 5000, status: 'open', map: 'Bermuda', participants: 38, max: 50, game: 'Free Fire', date: '2026-08-16', time: '7:00 PM', kills: true },
-  { id: '2', title: 'Duo Clash Tournament', mode: 'Duo', entryFee: 100, prizePool: 12000, status: 'open', map: 'Kalahari', participants: 18, max: 25, game: 'Free Fire', date: '2026-08-17', time: '6:00 PM', kills: true },
-  { id: '3', title: 'Squad War Season 4', mode: 'Squad', entryFee: 200, prizePool: 50000, status: 'open', map: 'Purgatory', participants: 6, max: 12, game: 'Free Fire', date: '2026-08-18', time: '8:00 PM', kills: true },
-  { id: '4', title: 'Solo Sprint — Daily', mode: 'Solo', entryFee: 20, prizePool: 1000, status: 'registration_closed', map: 'Bermuda', participants: 50, max: 50, game: 'Free Fire', date: '2026-08-14', time: '5:00 PM', kills: false },
-  { id: '5', title: 'Elite Duo Showdown', mode: 'Duo', entryFee: 300, prizePool: 30000, status: 'started', map: 'Alpine', participants: 24, max: 24, game: 'Free Fire', date: '2026-08-14', time: '3:00 PM', kills: true },
-  { id: '6', title: 'Weekend Squad Royale', mode: 'Squad', entryFee: 500, prizePool: 100000, status: 'open', map: 'Bermuda Remastered', participants: 4, max: 12, game: 'Free Fire', date: '2026-08-20', time: '8:00 PM', kills: true },
-];
+import { useEffect } from 'react';
+import { api } from '@/lib/api';
 
 const MODES = ['All', 'Solo', 'Duo', 'Squad'];
 const STATUSES = ['All', 'open', 'registration_closed', 'started', 'completed'];
@@ -36,12 +30,34 @@ export default function TournamentsPage() {
   const [statusFilter, setStatusFilter] = useState('All');
   const [search, setSearch] = useState('');
 
-  const filtered = ALL_TOURNAMENTS.filter(t => {
+  const [tournaments, setTournaments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchTournaments = async () => {
+      try {
+        const res = await api.get('/tournaments', false);
+        if (res.success) {
+          setTournaments(res.tournaments);
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchTournaments();
+  }, []);
+
+  const filtered = tournaments.filter(t => {
     if (modeFilter !== 'All' && t.mode !== modeFilter) return false;
-    if (statusFilter !== 'All' && t.status !== statusFilter) return false;
+    if (statusFilter !== 'All' && t.lifecycle !== statusFilter) return false;
     if (search && !t.title.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
+
+  const activeTournaments = tournaments.filter(t => ['open', 'started'].includes(t.lifecycle)).length;
+  const totalPrizePool = tournaments.reduce((acc, t) => acc + (t.prizePool || 0), 0);
 
   return (
     <>
@@ -130,11 +146,11 @@ export default function TournamentsPage() {
                   <h3 className={styles.filterTitle}>📊 Platform Stats</h3>
                   <div className={styles.sideStats}>
                     <div className={styles.sideStat}>
-                      <span className={styles.sideStatVal}>6</span>
+                      <span className={styles.sideStatVal}>{activeTournaments}</span>
                       <span className={styles.sideStatLabel}>Active Tournaments</span>
                     </div>
                     <div className={styles.sideStat}>
-                      <span className={`${styles.sideStatVal} glow-orange`}>Rs 1.98L+</span>
+                      <span className={`${styles.sideStatVal} glow-orange`}>Rs {totalPrizePool.toLocaleString()}</span>
                       <span className={styles.sideStatLabel}>Total Prize Pool</span>
                     </div>
                   </div>
@@ -144,7 +160,9 @@ export default function TournamentsPage() {
 
             {/* Main Grid */}
             <div className={styles.main}>
-              {filtered.length === 0 ? (
+              {loading ? (
+                <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-muted)' }}>Loading tournaments...</div>
+              ) : filtered.length === 0 ? (
                 <div className={styles.emptyState}>
                   <div className={styles.emptyIcon}>🔍</div>
                   <h3 className={styles.emptyTitle}>No Tournaments Found</h3>
@@ -153,14 +171,14 @@ export default function TournamentsPage() {
               ) : (
                 <div className={styles.grid}>
                   {filtered.map(t => (
-                    <Link key={t.id} href={`/tournaments/${t.id}`} className={`glass-card ${styles.tCard}`}>
+                    <Link key={t.matchId} href={`/tournaments/${t.matchId}`} className={`glass-card ${styles.tCard}`}>
                       <div className={styles.tCardBar} />
                       <div className={styles.tCardBody}>
                         <div className={styles.tCardTop}>
                           <div className={styles.tCardBadges}>
                             <span className={`badge badge-orange`}>{t.mode}</span>
-                            <span className={`badge ${STATUS_CLASS[t.status] || ''}`}>
-                              {t.status === 'started' ? '🔴 ' : ''}{STATUS_LABELS[t.status]}
+                            <span className={`badge ${STATUS_CLASS[t.lifecycle] || ''}`}>
+                              {t.lifecycle === 'started' ? '🔴 ' : ''}{STATUS_LABELS[t.lifecycle]}
                             </span>
                           </div>
                           <span className={styles.tCardPrize}>
@@ -172,8 +190,8 @@ export default function TournamentsPage() {
 
                         <div className={styles.tCardMeta}>
                           <span>📍 {t.map}</span>
-                          <span>📅 {t.date}</span>
-                          <span>⏰ {t.time}</span>
+                          <span>📅 {new Date(t.schedule.startTime).toLocaleDateString()}</span>
+                          <span>⏰ {new Date(t.schedule.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                         </div>
 
                         <div className={styles.tCardDivider} />
@@ -188,14 +206,14 @@ export default function TournamentsPage() {
                             <div className={styles.slotBarBg}>
                               <div
                                 className={styles.slotBarFill}
-                                style={{ width: `${(t.participants / t.max) * 100}%` }}
+                                style={{ width: `${(t.currentParticipants / t.maxParticipants) * 100}%` }}
                               />
                             </div>
-                            <span className={styles.slotText}>{t.participants}/{t.max} Slots</span>
+                            <span className={styles.slotText}>{t.currentParticipants}/{t.maxParticipants} Slots</span>
                           </div>
 
-                          <div className={`${styles.viewBtn} ${t.status === 'open' ? styles.viewBtnOpen : styles.viewBtnClosed}`}>
-                            {t.status === 'open' ? 'Register →' : 'View Details →'}
+                          <div className={`${styles.viewBtn} ${t.lifecycle === 'open' ? styles.viewBtnOpen : styles.viewBtnClosed}`}>
+                            {t.lifecycle === 'open' ? 'Register →' : 'View Details →'}
                           </div>
                         </div>
                       </div>

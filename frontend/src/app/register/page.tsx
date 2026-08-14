@@ -5,13 +5,21 @@ import { useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import styles from './page.module.css';
+import { api } from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
 
 export default function RegisterPage() {
   const router = useRouter();
-  const [form, setForm] = useState({ name: '', email: '', gameId: '', referralCode: '' });
+  const [form, setForm] = useState({ name: '', email: '', gameId: '', password: '', referralCode: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [step, setStep] = useState<'form' | 'otp'>('form');
+  const { user } = useAuth();
+
+  // Redirect if already logged in
+  if (user && typeof window !== 'undefined') {
+    router.push('/dashboard');
+  }
+
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -19,17 +27,23 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name || !form.email || !form.gameId) {
+    if (!form.name || !form.email || !form.gameId || !form.password) {
       setError('Please fill in all required fields');
       return;
     }
     setLoading(true);
     setError('');
-    // TODO: call api.post('/auth/register', form)
-    setTimeout(() => {
+    try {
+      const res = await api.post('/auth/send-otp', { email: form.email }, false);
+      if (res.success) {
+        sessionStorage.setItem('pendingRegistration', JSON.stringify(form));
+        router.push(`/verify-otp?email=${encodeURIComponent(form.email)}`);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to send OTP. Please try again.');
+    } finally {
       setLoading(false);
-      router.push(`/verify-otp?email=${encodeURIComponent(form.email)}`);
-    }, 1200);
+    }
   };
 
   return (
@@ -120,6 +134,23 @@ export default function RegisterPage() {
                     required
                   />
                   <p className={styles.fieldHint}>Find your UID in your Free Fire profile</p>
+                </div>
+
+                <div className={styles.fieldGroup}>
+                  <label className={styles.label} htmlFor="password">
+                    Password <span className={styles.required}>*</span>
+                  </label>
+                  <input
+                    id="password"
+                    name="password"
+                    type="password"
+                    className={styles.input}
+                    placeholder="Minimum 6 characters"
+                    value={form.password}
+                    onChange={handleChange}
+                    minLength={6}
+                    required
+                  />
                 </div>
 
                 <div className={styles.fieldGroup}>

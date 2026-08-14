@@ -5,18 +5,34 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import styles from './page.module.css';
 
-// Mock Data
-const MOCK_BALANCE = 2450;
-const MOCK_TRANSACTIONS = [
-  { id: 'tx_01', type: 'deposit', amount: 1000, date: '2026-08-14T10:00:00Z', status: 'completed', ref: 'eSewa' },
-  { id: 'tx_02', type: 'tournament_entry', amount: -50, date: '2026-08-13T14:30:00Z', status: 'completed', ref: 'Solo Ranked Championship' },
-  { id: 'tx_03', type: 'prize', amount: 1500, date: '2026-08-12T20:15:00Z', status: 'completed', ref: 'Weekend Squad Royale' },
-  { id: 'tx_04', type: 'withdrawal', amount: -500, date: '2026-08-10T09:00:00Z', status: 'pending', ref: 'Khalti Wallet' },
-  { id: 'tx_05', type: 'deposit', amount: 500, date: '2026-08-05T11:20:00Z', status: 'completed', ref: 'ConnectIPS' },
-];
+import { useEffect } from 'react';
+import { api } from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
+import ProtectedRoute from '@/components/ProtectedRoute';
 
 export default function WalletPage() {
+  const { user, wallet, refreshMe } = useAuth();
   const [activeTab, setActiveTab] = useState<'history' | 'deposit' | 'withdraw'>('history');
+  
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+
+  useEffect(() => {
+    if (activeTab === 'history') {
+      const fetchHistory = async () => {
+        setLoadingHistory(true);
+        try {
+          const res = await api.get('/wallet/transactions');
+          if (res.success) setTransactions(res.transactions);
+        } catch (err) {
+          console.error(err);
+        } finally {
+          setLoadingHistory(false);
+        }
+      };
+      fetchHistory();
+    }
+  }, [activeTab]);
   
   // Deposit Form State
   const [depositAmount, setDepositAmount] = useState('');
@@ -29,30 +45,45 @@ export default function WalletPage() {
   const [withdrawAccount, setWithdrawAccount] = useState('');
   const [withdrawLoading, setWithdrawLoading] = useState(false);
 
-  const handleDeposit = (e: React.FormEvent) => {
+  const handleDeposit = async (e: React.FormEvent) => {
     e.preventDefault();
     setDepositLoading(true);
-    setTimeout(() => {
+    try {
+      const res = await api.post('/wallet/deposit', { amount: depositAmount, method: depositMethod });
+      if (res.success) {
+        alert('Deposit successful!');
+        setDepositAmount('');
+        refreshMe();
+        setActiveTab('history');
+      }
+    } catch (err: any) {
+      alert(err.message || 'Deposit failed');
+    } finally {
       setDepositLoading(false);
-      alert('Redirecting to payment gateway...');
-      setDepositAmount('');
-    }, 1000);
+    }
   };
 
-  const handleWithdraw = (e: React.FormEvent) => {
+  const handleWithdraw = async (e: React.FormEvent) => {
     e.preventDefault();
     setWithdrawLoading(true);
-    setTimeout(() => {
+    try {
+      const res = await api.post('/wallet/withdraw', { amount: withdrawAmount, method: withdrawMethod, account: withdrawAccount });
+      if (res.success) {
+        alert('Withdrawal request submitted! Pending admin approval.');
+        setWithdrawAmount('');
+        setWithdrawAccount('');
+        refreshMe();
+        setActiveTab('history');
+      }
+    } catch (err: any) {
+      alert(err.message || 'Withdrawal failed');
+    } finally {
       setWithdrawLoading(false);
-      alert('Withdrawal request submitted! Pending admin approval.');
-      setWithdrawAmount('');
-      setWithdrawAccount('');
-      setActiveTab('history');
-    }, 1500);
+    }
   };
 
   return (
-    <>
+    <ProtectedRoute>
       <Navbar />
       <main className={styles.page}>
         
@@ -84,7 +115,7 @@ export default function WalletPage() {
                   <span className={styles.balanceLabel}>Current Balance</span>
                   <div className={styles.balanceAmount}>
                     <span className={styles.currency}>Rs</span>
-                    {MOCK_BALANCE.toLocaleString()}
+                    {wallet?.availableBalance.toLocaleString() || 0}
                   </div>
                   <div className={styles.balanceActions}>
                     <button 
@@ -146,23 +177,26 @@ export default function WalletPage() {
                           </tr>
                         </thead>
                         <tbody>
-                          {MOCK_TRANSACTIONS.map(tx => (
-                            <tr key={tx.id}>
+                          {loadingHistory ? (
+                            <tr><td colSpan={4} style={{textAlign: 'center', padding: '2rem'}}>Loading...</td></tr>
+                          ) : transactions.length === 0 ? (
+                            <tr><td colSpan={4} style={{textAlign: 'center', padding: '2rem'}}>No transactions found.</td></tr>
+                          ) : transactions.map(tx => (
+                            <tr key={tx._id}>
                               <td className={styles.tdDate}>
-                                {new Date(tx.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                {new Date(tx.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                               </td>
                               <td className={styles.tdDesc}>
                                 <div className={styles.txType}>
                                   {tx.type.replace('_', ' ').toUpperCase()}
                                 </div>
-                                <div className={styles.txRef}>{tx.ref}</div>
+                                <div className={styles.txRef}>{tx.description}</div>
                               </td>
                               <td>
                                 <span className={`badge ${
-                                  tx.status === 'completed' ? 'badge-green' : 
-                                  tx.status === 'pending' ? 'badge-yellow' : 'badge-orange'
+                                  tx.amount < 0 && tx.type === 'withdrawal' && !tx.description.includes('Resolved') ? 'badge-yellow' : 'badge-green'
                                 }`}>
-                                  {tx.status}
+                                  Completed
                                 </span>
                               </td>
                               <td className={`${styles.textRight} ${styles.tdAmount} ${tx.amount > 0 ? styles.textSuccess : styles.textDanger}`}>
@@ -236,7 +270,7 @@ export default function WalletPage() {
                     <p className={styles.sectionSub}>Request a payout of your tournament winnings.</p>
                     
                     <div className={styles.alertBox}>
-                      <strong>Available to withdraw:</strong> Rs {MOCK_BALANCE.toLocaleString()}
+                      <strong>Available to withdraw:</strong> Rs {wallet?.availableBalance.toLocaleString() || 0}
                     </div>
 
                     <form className={styles.form} onSubmit={handleWithdraw}>
@@ -247,7 +281,7 @@ export default function WalletPage() {
                           className={styles.input} 
                           placeholder="e.g. 1000" 
                           min="500"
-                          max={MOCK_BALANCE}
+                          max={wallet?.availableBalance || 0}
                           value={withdrawAmount}
                           onChange={(e) => setWithdrawAmount(e.target.value)}
                           required 
@@ -299,6 +333,6 @@ export default function WalletPage() {
         </div>
       </main>
       <Footer />
-    </>
+    </ProtectedRoute>
   );
 }

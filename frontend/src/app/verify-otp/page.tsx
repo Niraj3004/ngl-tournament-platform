@@ -5,6 +5,8 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import styles from './page.module.css';
+import { api } from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
 
 function OTPForm() {
   const searchParams = useSearchParams();
@@ -14,6 +16,7 @@ function OTPForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const { loginUser } = useAuth();
 
   useEffect(() => {
     inputRefs.current[0]?.focus();
@@ -47,11 +50,30 @@ function OTPForm() {
     if (code.length < 6) { setError('Please enter all 6 digits'); return; }
     setLoading(true);
     setError('');
-    // TODO: call api.post('/auth/verify-otp', { email, otp: code })
-    setTimeout(() => {
+    
+    try {
+      const payload: any = { email, otp: code };
+      const pendingRegStr = sessionStorage.getItem('pendingRegistration');
+      if (pendingRegStr) {
+        const pendingReg = JSON.parse(pendingRegStr);
+        if (pendingReg.email === email) {
+          payload.password = pendingReg.password;
+          payload.displayName = pendingReg.name;
+          payload.gameId = pendingReg.gameId;
+        }
+      }
+
+      const res = await api.post('/auth/verify-otp', payload, false);
+      if (res.success && res.token) {
+        sessionStorage.removeItem('pendingRegistration');
+        loginUser(res.token, res.user);
+        router.push('/dashboard');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Verification failed');
+    } finally {
       setLoading(false);
-      router.push('/dashboard');
-    }, 1500);
+    }
   };
 
   return (
