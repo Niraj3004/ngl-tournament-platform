@@ -1,0 +1,188 @@
+/* ── Page Header ── */
+.page { padding-bottom: 5rem; }
+
+.pageHeader {
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-subtle);
+  padding: 2.5rem 0;
+  margin-bottom: 2.5rem;
+}
+
+.pageHeaderInner { display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 1rem; }
+
+.breadcrumb {
+  font-family: var(--font-sub);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+}
+.breadcrumb a { color: var(--accent-orange); }
+.breadcrumb a:hover { text-decoration: underline; }
+
+.pageTitle {
+  font-family: var(--font-heading);
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.pageSubtitle { font-size: 0.875rem; color: var(--text-muted); margin-top: 0.25rem; }
+
+/* ── Layout ── */
+.layout { display: grid; grid-template-columns: 260px 1fr; gap: 2rem; align-items: start; }
+
+/* ── Sidebar ── */
+.sidebar { display: flex; flex-direction: column; gap: 1rem; position: sticky; top: 80px; }
+
+.filterCard {
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.filterCardBar { height: 2px; background: linear-gradient(90deg, var(--accent-orange), var(--accent-blue)); }
+.filterCardInner { padding: 1.25rem; display: flex; flex-direction: column; gap: 0.75rem; }
+.filterTitle {
+  font-family: var(--font-sub);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.searchInput {
+  width: 100%;
+  padding: 0.65rem 0.875rem;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border-card);
+  border-radius: 5px;
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.searchInput::placeholder { color: var(--text-muted); }
+.searchInput:focus { border-color: var(--accent-orange); }
+
+.filterOptions { display: flex; flex-direction: column; gap: 0.4rem; }
+
+.filterBtn {
+  padding: 0.5rem 0.75rem;
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  border-radius: 5px;
+  color: var(--text-secondary);
+  font-family: var(--font-sub);
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-align: left;
+  transition: all 0.2s;
+}
+.filterBtn:hover { border-color: var(--accent-orange); color: var(--text-primary); }
+.filterBtnActive {
+  border-color: var(--accent-orange);
+  background: rgba(255, 107, 0, 0.1);
+  color: var(--accent-orange);
+}
+
+.sideStats { display: flex; flex-direction: column; gap: 0.75rem; }
+.sideStat { display: flex; flex-direction: column; gap: 0.15rem; }
+.sideStatVal { font-family: var(--font-heading); font-size: 1.4rem; font-weight: 900; color: var(--text-primary); }
+.sideStatLabel { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+
+/* ── Main Grid ── */
+.main {}
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.25rem; }
+
+/* ── Tournament Card ── */
+.tCard {
+  display: flex;
+  flex-direction: column;
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.25s ease;
+}
+.tCardBar { height: 3px; background: linear-gradient(90deg, var(--accent-orange), var(--accent-yellow), var(--accent-blue)); }
+.tCardBody { padding: 1.25rem; display: flex; flex-direction: column; gap: 0.85rem; }
+
+.tCardTop { display: flex; justify-content: space-between; align-items: flex-start; }
+.tCardBadges { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+
+.tCardPrize {
+  font-family: var(--font-heading);
+  font-size: 1.1rem;
+  font-weight: 900;
+  color: var(--accent-yellow);
+  text-shadow: 0 0 16px rgba(255, 215, 0, 0.4);
+  white-space: nowrap;
+}
+
+.tCardTitle {
+  font-family: var(--font-heading);
+  font-size: 1.1rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  line-height: 1.2;
+}
+
+.tCardMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  font-family: var(--font-sub);
+  font-weight: 600;
+}
+
+.tCardDivider { height: 1px; background: var(--border-subtle); }
+
+.tCardFooter { display: flex; flex-direction: column; gap: 0.65rem; }
+
+.tCardFeeBox { display: flex; justify-content: space-between; align-items: center; }
+.tCardFeeLabel { font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; font-family: var(--font-sub); }
+.tCardFeeVal { font-family: var(--font-heading); font-size: 1rem; font-weight: 800; }
+
+.slotWrap { display: flex; flex-direction: column; gap: 0.3rem; }
+.slotBarBg { height: 4px; background: rgba(255,255,255,0.07); border-radius: 2px; overflow: hidden; }
+.slotBarFill { height: 100%; background: linear-gradient(90deg, var(--accent-orange), var(--accent-yellow)); border-radius: 2px; }
+.slotText { font-size: 0.7rem; color: var(--text-muted); text-align: right; font-family: var(--font-sub); font-weight: 600; }
+
+.viewBtn {
+  padding: 0.55rem 1rem;
+  border-radius: 4px;
+  font-family: var(--font-sub);
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-align: center;
+  text-transform: uppercase;
+}
+.viewBtnOpen { background: linear-gradient(135deg, var(--accent-orange), #ff9a3c); color: white; box-shadow: 0 0 16px rgba(255,107,0,0.25); }
+.viewBtnClosed { background: rgba(255,255,255,0.05); border: 1px solid var(--border-card); color: var(--text-secondary); }
+
+/* ── Empty state ── */
+.emptyState { text-align: center; padding: 5rem 2rem; }
+.emptyIcon { font-size: 3rem; margin-bottom: 1rem; }
+.emptyTitle { font-family: var(--font-heading); font-size: 1.5rem; font-weight: 800; margin-bottom: 0.5rem; }
+.emptyText { color: var(--text-muted); }
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  .layout { grid-template-columns: 1fr; }
+  .sidebar { position: static; }
+  .filterOptions { flex-direction: row; flex-wrap: wrap; }
+  .filterBtn { flex: 1; min-width: 80px; text-align: center; }
+}
+@media (max-width: 600px) {
+  .grid { grid-template-columns: 1fr; }
+}
