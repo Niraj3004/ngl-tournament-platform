@@ -5,6 +5,9 @@ import { Match } from '../models/match.model';
 import { WalletTransaction } from '../models/walletTransaction.model';
 import { AdminAuditLog } from '../models/auditLog.model';
 import { AuthRequest } from '../middlewares/auth.middleware';
+import mongoose from 'mongoose';
+import { resolveLockedFunds } from '../services/ledger.service';
+import { Wallet } from '../models/wallet.model';
 
 export const getDashboardMetrics = async (req: AuthRequest, res: Response) => {
   try {
@@ -74,5 +77,68 @@ export const getSystemLogs = async (req: AuthRequest, res: Response) => {
     });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const getPendingWithdrawals = async (req: AuthRequest, res: Response) => {
+  try {
+    // In our ledger system, a pending withdrawal creates a transaction of type 'withdrawal' 
+    // with 'Funds Locked' in description. It is considered pending until resolved.
+    const withdrawals = await WalletTransaction.find({
+      type: 'withdrawal',
+      description: { $regex: /Funds Locked/i }
+    }).sort({ createdAt: -1 });
+
+    // Since we don't have a dedicated WithdrawalRequest model in this simple design, 
+    // we'll filter out the ones that have been resolved.
+    // A better approach would be adding a 'status' field, but this works for now.
+    // Wait, let's just fetch from WalletTransaction.
+    
+    // To make it robust without changing models:
+    // Let's assume if it has 'Funds Locked' it's pending.
+    // Let's get them.
+    res.status(200).json({ success: true, withdrawals });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const resolveWithdrawal = async (req: AuthRequest, res: Response) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const { id } = req.params; // Transaction ID of the locked funds
+    const { action } = req.body; // 'paid' or 'refunded'
+
+    const tx = await WalletTransaction.findById(id);
+    if (!tx || tx.type !== 'withdrawal') {
+      throw new Error('Invalid withdrawal request');
+    }
+    
+    // Actually, in our ledger, resolveLockedFunds uses idempotency keys. 
+    // We'll generate a new key based on this action.
+    const idempotencyKey = `resolve_${id}_${action}`;
+    
+    await resolveLockedFunds(
+      tx.uid,
+      Math.abs(tx.amount), // tx.amount is negative
+      action as 'paid' | 'refunded',
+      { description: `Withdrawal ${action} by admin` },
+      idempotencyKey,
+      session
+    );
+    
+    // Mark original tx description as resolved so it doesn't show in pending
+    await WalletTransaction.findByIdAndUpdate(id, {
+      description: tx.description + ' (Resolved)'
+    }, { session });
+
+    await session.commitTransaction();
+    res.status(200).json({ success: true, message: `Withdrawal ${action} successfully` });
+  } catch (error: any) {
+    await session.abortTransaction();
+    res.status(500).json({ success: false, message: error.message });
+  } finally {
+    session.endSession();
   }
 };

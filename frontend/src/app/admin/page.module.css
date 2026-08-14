@@ -1,0 +1,81 @@
+.dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.pageTitle {
+  font-family: var(--font-orbitron);
+  font-size: 2rem;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.pageSub {
+  color: var(--text-secondary);
+  margin-top: -1rem;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+.statCard {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.statCard:hover {
+  transform: translateY(-5px);
+  border-color: var(--primary-orange);
+}
+
+.statIcon {
+  font-size: 2.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.statInfo {
+  display: flex;
+  flex-direction: column;
+}
+
+.statLabel {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.statValue {
+  font-size: 1.75rem;
+  font-weight: 700;
+  font-family: var(--font-orbitron);
+  margin-top: 0.25rem;
+}
+
+.loading, .error {
+  text-align: center;
+  padding: 4rem;
+  color: var(--text-secondary);
+}
+
+.error {
+  color: var(--danger);
+}

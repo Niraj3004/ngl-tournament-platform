@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { requireAuth, requireAdmin } from '../middlewares/auth.middleware';
-import { getDashboardMetrics, getSystemLogs } from '../controllers/admin.controller';
+import { getDashboardMetrics, getSystemLogs, getPendingWithdrawals, resolveWithdrawal } from '../controllers/admin.controller';
 
 const router = Router();
 
@@ -9,5 +9,7 @@ router.use(requireAuth, requireAdmin);
 
 router.get('/dashboard', getDashboardMetrics);
 router.get('/system-logs', getSystemLogs);
+router.get('/withdrawals', getPendingWithdrawals);
+router.post('/withdrawals/:id/resolve', resolveWithdrawal);
 
 export default router;
