@@ -15,6 +15,8 @@ export default function SupportPage() {
   const [category, setCategory] = useState('general');
   const [subject, setSubject] = useState('');
   const [description, setDescription] = useState('');
+  const [attachmentUrl, setAttachmentUrl] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
     const fetchTickets = async () => {
@@ -27,14 +29,47 @@ export default function SupportPage() {
     if (user) fetchTickets();
   }, [user]);
 
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      
+      const token = localStorage.getItem('token');
+      const res = await fetch('http://localhost:5000/api/upload', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData
+      });
+      const data = await res.json();
+      
+      if (data.success) {
+        setAttachmentUrl(data.imageUrl);
+      } else {
+        alert(data.message || 'Upload failed');
+      }
+    } catch (err: any) {
+      alert('Error uploading image');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await api.post('/support', { category, subject, description });
+      const payload: any = { category, subject, description };
+      if (attachmentUrl) payload.attachments = [attachmentUrl];
+
+      const res = await api.post('/support', payload);
       if (res.success) {
         setTickets([res.ticket, ...tickets]);
         setSubject('');
         setDescription('');
+        setAttachmentUrl('');
         alert('Support ticket created successfully');
       }
     } catch (e: any) {
@@ -61,7 +96,17 @@ export default function SupportPage() {
                 </select>
                 <input className={styles.input} required placeholder="Subject" value={subject} onChange={e => setSubject(e.target.value)} />
                 <textarea className={styles.textarea} required placeholder="Describe your issue..." value={description} onChange={e => setDescription(e.target.value)} />
-                <button type="submit" className={styles.submitBtn}>Submit Ticket</button>
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: '#8888aa' }}>Attach Evidence (Screenshot/Image)</label>
+                  <input type="file" accept="image/*" onChange={handleUpload} disabled={isUploading} style={{ color: '#fff' }} />
+                  {isUploading && <span style={{ marginLeft: '10px', fontSize: '0.8rem', color: '#00c8ff' }}>Uploading...</span>}
+                  {attachmentUrl && (
+                    <div style={{ marginTop: '0.5rem' }}>
+                      <a href={attachmentUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#00ff88', fontSize: '0.8rem', textDecoration: 'underline' }}>View Uploaded Image</a>
+                    </div>
+                  )}
+                </div>
+                <button type="submit" className={styles.submitBtn} disabled={isUploading}>Submit Ticket</button>
               </form>
             </div>
             

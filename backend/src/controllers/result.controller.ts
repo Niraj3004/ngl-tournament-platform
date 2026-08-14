@@ -5,6 +5,8 @@ import { MatchParticipant } from '../models/matchParticipant.model';
 import { writeTxn } from '../services/ledger.service';
 import { AuthRequest } from '../middlewares/auth.middleware';
 import { Dispute } from '../models/dispute.model';
+import { User } from '../models/user.model';
+import { sendTournamentResultEmail } from '../services/email.service';
 
 // Free Fire Standard Placement Points
 const PLACEMENT_POINTS: Record<number, number> = {
@@ -101,6 +103,16 @@ export const publishResults = async (req: AuthRequest, res: Response) => {
     await session.commitTransaction();
     session.endSession();
 
+    // Send emails in background
+    (async () => {
+      for (const p of participants) {
+        const user = await User.findOne({ uid: p.uid });
+        if (user && user.email) {
+          sendTournamentResultEmail(user.email, match.title, p.prizeWon || 0).catch(console.error);
+        }
+      }
+    })();
+
     res.status(200).json({ success: true, message: 'Results published and prizes distributed successfully' });
   } catch (error: any) {
     await session.abortTransaction();
@@ -131,7 +143,7 @@ export const submitDispute = async (req: AuthRequest, res: Response) => {
     const { reason, description, evidenceUrls } = req.body;
 
     const dispute = await Dispute.create({
-      matchId,
+      matchId: new mongoose.Types.ObjectId(matchId as string),
       uid: req.user!.uid,
       reason,
       description,

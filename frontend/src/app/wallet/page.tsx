@@ -12,7 +12,7 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 
 export default function WalletPage() {
   const { user, wallet, refreshMe } = useAuth();
-  const [activeTab, setActiveTab] = useState<'history' | 'deposit' | 'withdraw'>('history');
+  const [activeTab, setActiveTab] = useState<'history' | 'deposit' | 'withdraw' | 'redeem'>('history');
   
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
@@ -44,6 +44,10 @@ export default function WalletPage() {
   const [withdrawMethod, setWithdrawMethod] = useState('khalti');
   const [withdrawAccount, setWithdrawAccount] = useState('');
   const [withdrawLoading, setWithdrawLoading] = useState(false);
+
+  // Redeem Form State
+  const [redeemCode, setRedeemCode] = useState('');
+  const [redeemLoading, setRedeemLoading] = useState(false);
 
   const handleDeposit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,6 +83,24 @@ export default function WalletPage() {
       alert(err.message || 'Withdrawal failed');
     } finally {
       setWithdrawLoading(false);
+    }
+  };
+
+  const handleRedeem = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setRedeemLoading(true);
+    try {
+      const res = await api.post('/payment-codes/redeem', { code: redeemCode });
+      if (res.success) {
+        alert(res.message || 'Code redeemed successfully!');
+        setRedeemCode('');
+        refreshMe();
+        setActiveTab('history');
+      }
+    } catch (err: any) {
+      alert(err.message || 'Failed to redeem code');
+    } finally {
+      setRedeemLoading(false);
     }
   };
 
@@ -153,6 +175,12 @@ export default function WalletPage() {
                   onClick={() => setActiveTab('withdraw')}
                 >
                   💸 Withdraw Funds
+                </button>
+                <button 
+                  className={`${styles.menuBtn} ${activeTab === 'redeem' ? styles.menuBtnActive : ''}`}
+                  onClick={() => setActiveTab('redeem')}
+                >
+                  🎟️ Redeem Code
                 </button>
               </div>
             </aside>
@@ -320,8 +348,36 @@ export default function WalletPage() {
                         />
                       </div>
 
-                      <button type="submit" className={`btn-primary ${styles.submitBtn}`} disabled={withdrawLoading}>
-                        {withdrawLoading ? <><span className={styles.spinner}/> Submitting...</> : 'Request Withdrawal →'}
+                      <button type="submit" className="btn-primary" disabled={withdrawLoading}>
+                        {withdrawLoading ? 'Processing...' : 'Submit Withdrawal'}
+                      </button>
+                    </form>
+                  </div>
+                </div>
+              )}
+
+              {/* ── REDEEM TAB ── */}
+              {activeTab === 'redeem' && (
+                <div className={styles.contentCard}>
+                  <div className={styles.contentCardBar} />
+                  <div className={styles.contentCardInner}>
+                    <h2 className={styles.sectionTitle}>Redeem Payment Code</h2>
+                    <p className={styles.sectionSub}>Enter a 16-character NGL code to instantly add funds to your wallet.</p>
+
+                    <form className={styles.form} onSubmit={handleRedeem}>
+                      <div className={styles.fieldGroup}>
+                        <label className={styles.label}>Payment Code</label>
+                        <input 
+                          type="text" 
+                          className={styles.input} 
+                          placeholder="NGL-XXXX..." 
+                          value={redeemCode}
+                          onChange={(e) => setRedeemCode(e.target.value.toUpperCase())}
+                          required 
+                        />
+                      </div>
+                      <button type="submit" className="btn-primary" disabled={redeemLoading}>
+                        {redeemLoading ? 'Verifying...' : 'Redeem Code'}
                       </button>
                     </form>
                   </div>

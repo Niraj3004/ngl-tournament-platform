@@ -17,6 +17,8 @@ export default function ResultsPage() {
   const [showDispute, setShowDispute] = useState(false);
   const [disputeReason, setDisputeReason] = useState('');
   const [disputeDescription, setDisputeDescription] = useState('');
+  const [evidenceUrl, setEvidenceUrl] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
     const fetchResults = async () => {
@@ -32,15 +34,48 @@ export default function ResultsPage() {
     fetchResults();
   }, [params.id]);
 
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      
+      const token = localStorage.getItem('token');
+      const res = await fetch('http://localhost:5000/api/upload', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData
+      });
+      const data = await res.json();
+      
+      if (data.success) {
+        setEvidenceUrl(data.imageUrl);
+      } else {
+        alert(data.message || 'Upload failed');
+      }
+    } catch (err: any) {
+      alert('Error uploading image');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const handleSubmitDispute = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await api.post(`/tournaments/${params.id}/dispute`, {
-        reason: disputeReason, description: disputeDescription
-      });
+      const payload: any = { reason: disputeReason, description: disputeDescription };
+      if (evidenceUrl) payload.evidenceUrls = [evidenceUrl];
+
+      const res = await api.post(`/tournaments/${params.id}/dispute`, payload);
       if (res.success) {
         alert('Dispute submitted successfully');
         setShowDispute(false);
+        setDisputeReason('');
+        setDisputeDescription('');
+        setEvidenceUrl('');
       }
     } catch (err: any) {
       alert(err.message || 'Error submitting dispute');
@@ -76,7 +111,19 @@ export default function ResultsPage() {
                     <form onSubmit={handleSubmitDispute} className={styles.form}>
                       <input className={styles.input} required placeholder="Reason" value={disputeReason} onChange={e => setDisputeReason(e.target.value)} />
                       <textarea className={styles.input} required placeholder="Description" value={disputeDescription} onChange={e => setDisputeDescription(e.target.value)} />
-                      <button className={styles.submitBtn} type="submit">Submit</button>
+                      
+                      <div style={{ marginBottom: '1rem' }}>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: '#8888aa' }}>Attach Evidence (Screenshot)</label>
+                        <input type="file" accept="image/*" onChange={handleUpload} disabled={isUploading} style={{ color: '#fff' }} />
+                        {isUploading && <span style={{ marginLeft: '10px', fontSize: '0.8rem', color: '#00c8ff' }}>Uploading...</span>}
+                        {evidenceUrl && (
+                          <div style={{ marginTop: '0.5rem' }}>
+                            <a href={evidenceUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#00ff88', fontSize: '0.8rem', textDecoration: 'underline' }}>View Uploaded Image</a>
+                          </div>
+                        )}
+                      </div>
+
+                      <button className={styles.submitBtn} type="submit" disabled={isUploading}>Submit Dispute</button>
                     </form>
                   )}
                 </div>

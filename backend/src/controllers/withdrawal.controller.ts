@@ -3,6 +3,12 @@ import mongoose from 'mongoose';
 import { Withdrawal } from '../models/withdrawal.model';
 import { lockFunds, resolveLockedFunds } from '../services/ledger.service';
 import { AuthRequest } from '../middlewares/auth.middleware';
+import { User } from '../models/user.model';
+import { 
+  sendWithdrawalRequestEmail, 
+  sendWithdrawalApprovedEmail, 
+  sendWithdrawalRejectedEmail 
+} from '../services/email.service';
 
 export const requestWithdrawal = async (req: AuthRequest, res: Response) => {
   const session = await mongoose.startSession();
@@ -37,6 +43,12 @@ export const requestWithdrawal = async (req: AuthRequest, res: Response) => {
 
     await session.commitTransaction();
     session.endSession();
+
+    // Send email notification
+    const user = await User.findOne({ uid });
+    if (user && user.email) {
+      sendWithdrawalRequestEmail(user.email, amount).catch(console.error);
+    }
 
     res.status(201).json({ success: true, withdrawal: withdrawal[0] });
   } catch (error: any) {
@@ -113,6 +125,12 @@ export const markWithdrawalPaid = async (req: AuthRequest, res: Response) => {
     await session.commitTransaction();
     session.endSession();
 
+    // Send email notification
+    const user = await User.findOne({ uid: withdrawal.uid });
+    if (user && user.email) {
+      sendWithdrawalApprovedEmail(user.email, withdrawal.amount).catch(console.error);
+    }
+
     res.status(200).json({ success: true, message: 'Withdrawal marked as paid', withdrawal });
   } catch (error: any) {
     await session.abortTransaction();
@@ -156,6 +174,12 @@ export const rejectWithdrawal = async (req: AuthRequest, res: Response) => {
 
     await session.commitTransaction();
     session.endSession();
+
+    // Send email notification
+    const user = await User.findOne({ uid: withdrawal.uid });
+    if (user && user.email) {
+      sendWithdrawalRejectedEmail(user.email, withdrawal.amount, reason).catch(console.error);
+    }
 
     res.status(200).json({ success: true, message: 'Withdrawal rejected and refunded', withdrawal });
   } catch (error: any) {

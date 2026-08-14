@@ -1,6 +1,8 @@
 import { Response } from 'express';
 import { Dispute } from '../models/dispute.model';
 import { AuthRequest } from '../middlewares/auth.middleware';
+import { User } from '../models/user.model';
+import { sendDisputeResolvedEmail } from '../services/email.service';
 
 export const getDisputes = async (req: AuthRequest, res: Response) => {
   try {
@@ -24,9 +26,20 @@ export const resolveDispute = async (req: AuthRequest, res: Response) => {
       disputeId,
       { status, resolutionMessage },
       { new: true }
-    );
+    ).populate('matchId', 'title');
 
     if (!dispute) return res.status(404).json({ success: false, message: 'Dispute not found' });
+
+    // Send email
+    const user = await User.findOne({ uid: dispute.uid });
+    if (user && user.email) {
+      sendDisputeResolvedEmail(
+        user.email, 
+        (dispute.matchId as any)?.title || 'Tournament Match', 
+        status, 
+        resolutionMessage
+      ).catch(console.error);
+    }
 
     res.status(200).json({ success: true, dispute });
   } catch (error: any) {

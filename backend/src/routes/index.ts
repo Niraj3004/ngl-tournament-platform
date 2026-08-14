@@ -11,6 +11,7 @@ import walletRoutes from './wallet.route';
 import leaderboardRoutes from './leaderboard.route';
 import supportRoutes from './support.route';
 import referralRoutes from './referral.route';
+import uploadRoutes from './upload.route';
 
 const router = Router();
 
@@ -26,5 +27,6 @@ router.use('/wallet', walletRoutes);
 router.use('/leaderboard', leaderboardRoutes);
 router.use('/support', supportRoutes);
 router.use('/referrals', referralRoutes);
+router.use('/upload', uploadRoutes);
 
 export default router;

@@ -1,0 +1,61 @@
+2026-08-14 14:01:50 [info]: Server running in development mode on port 5000
+2026-08-14 14:02:05 [info]: Server running in development mode on port 5000
+2026-08-14 14:05:18 [error]: 404 - Not Found - /api/wallet - /api/wallet - GET - ::1
+2026-08-14 14:05:18 [error]: Error: Not Found - /api/wallet
+    at notFound (C:\Users\niraj\Downloads\ngl-ff\ngl-tournament-platform\backend\src\middlewares\error.middleware.ts:27:17)
+    at Layer.handleRequest (C:\Users\niraj\Downloads\ngl-ff\ngl-tournament-platform\backend\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (C:\Users\niraj\Downloads\ngl-ff\ngl-tournament-platform\backend\node_modules\router\index.js:342:13)
+    at C:\Users\niraj\Downloads\ngl-ff\ngl-tournament-platform\backend\node_modules\router\index.js:297:9
+    at processParams (C:\Users\niraj\Downloads\ngl-ff\ngl-tournament-platform\backend\node_modules\router\index.js:582:12)
+    at next (C:\Users\niraj\Downloads\ngl-ff\ngl-tournament-platform\backend\node_modules\router\index.js:291:5)
+    at C:\Users\niraj\Downloads\ngl-ff\ngl-tournament-platform\backend\node_modules\router\index.js:688:15
+    at next (C:\Users\niraj\Downloads\ngl-ff\ngl-tournament-platform\backend\node_modules\router\index.js:276:14)
+    at C:\Users\niraj\Downloads\ngl-ff\ngl-tournament-platform\backend\node_modules\router\index.js:688:15
+    at next (C:\Users\niraj\Downloads\ngl-ff\ngl-tournament-platform\backend\node_modules\router\index.js:276:14)
+2026-08-14 14:05:18 [error]: 404 - Not Found - /api/wallet - /api/wallet - GET - ::1
+2026-08-14 14:05:18 [error]: Error: Not Found - /api/wallet
+    at notFound (C:\Users\niraj\Downloads\ngl-ff\ngl-tournament-platform\backend\src\middlewares\error.middleware.ts:27:17)
+    at Layer.handleRequest (C:\Users\niraj\Downloads\ngl-ff\ngl-tournament-platform\backend\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (C:\Users\niraj\Downloads\ngl-ff\ngl-tournament-platform\backend\node_modules\router\index.js:342:13)
+    at C:\Users\niraj\Downloads\ngl-ff\ngl-tournament-platform\backend\node_modules\router\index.js:297:9
+    at processParams (C:\Users\niraj\Downloads\ngl-ff\ngl-tournament-platform\backend\node_modules\router\index.js:582:12)
+    at next (C:\Users\niraj\Downloads\ngl-ff\ngl-tournament-platform\backend\node_modules\router\index.js:291:5)
+    at C:\Users\niraj\Downloads\ngl-ff\ngl-tournament-platform\backend\node_modules\router\index.js:688:15
+    at next (C:\Users\niraj\Downloads\ngl-ff\ngl-tournament-platform\backend\node_modules\router\index.js:276:14)
+    at C:\Users\niraj\Downloads\ngl-ff\ngl-tournament-platform\backend\node_modules\router\index.js:688:15
+    at next (C:\Users\niraj\Downloads\ngl-ff\ngl-tournament-platform\backend\node_modules\router\index.js:276:14)
+2026-08-14 14:05:46 [error]: 404 - Not Found - /api/wallet - /api/wallet - GET - ::1
+2026-08-14 14:05:46 [error]: Error: Not Found - /api/wallet
+    at notFound (C:\Users\niraj\Downloads\ngl-ff\ngl-tournament-platform\backend\src\middlewares\error.middleware.ts:27:17)
+    at Layer.handleRequest (C:\Users\niraj\Downloads\ngl-ff\ngl-tournament-platform\backend\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (C:\Users\niraj\Downloads\ngl-ff\ngl-tournament-platform\backend\node_modules\router\index.js:342:13)
+    at C:\Users\niraj\Downloads\ngl-ff\ngl-tournament-platform\backend\node_modules\router\index.js:297:9
+    at processParams (C:\Users\niraj\Downloads\ngl-ff\ngl-tournament-platform\backend\node_modules\router\index.js:582:12)
+    at next (C:\Users\niraj\Downloads\ngl-ff\ngl-tournament-platform\backend\node_modules\router\index.js:291:5)
+    at C:\Users\niraj\Downloads\ngl-ff\ngl-tournament-platform\backend\node_modules\router\index.js:688:15
+    at next (C:\Users\niraj\Downloads\ngl-ff\ngl-tournament-platform\backend\node_modules\router\index.js:276:14)
+    at C:\Users\niraj\Downloads\ngl-ff\ngl-tournament-platform\backend\node_modules\router\index.js:688:15
+    at next (C:\Users\niraj\Downloads\ngl-ff\ngl-tournament-platform\backend\node_modules\router\index.js:276:14)
+2026-08-14 14:05:46 [error]: 404 - Not Found - /api/wallet - /api/wallet - GET - ::1
+2026-08-14 14:05:46 [error]: Error: Not Found - /api/wallet
+    at notFound (C:\Users\niraj\Downloads\ngl-ff\ngl-tournament-platform\backend\src\middlewares\error.middleware.ts:27:17)
+    at Layer.handleRequest (C:\Users\niraj\Downloads\ngl-ff\ngl-tournament-platform\backend\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (C:\Users\niraj\Downloads\ngl-ff\ngl-tournament-platform\backend\node_modules\router\index.js:342:13)
+    at C:\Users\niraj\Downloads\ngl-ff\ngl-tournament-platform\backend\node_modules\router\index.js:297:9
+    at processParams (C:\Users\niraj\Downloads\ngl-ff\ngl-tournament-platform\backend\node_modules\router\index.js:582:12)
+    at next (C:\Users\niraj\Downloads\ngl-ff\ngl-tournament-platform\backend\node_modules\router\index.js:291:5)
+    at C:\Users\niraj\Downloads\ngl-ff\ngl-tournament-platform\backend\node_modules\router\index.js:688:15
+    at next (C:\Users\niraj\Downloads\ngl-ff\ngl-tournament-platform\backend\node_modules\router\index.js:276:14)
+    at C:\Users\niraj\Downloads\ngl-ff\ngl-tournament-platform\backend\node_modules\router\index.js:688:15
+    at next (C:\Users\niraj\Downloads\ngl-ff\ngl-tournament-platform\backend\node_modules\router\index.js:276:14)
+2026-08-14 14:09:36 [info]: Server running in development mode on port 5000
+2026-08-14 14:20:54 [info]: Server running in development mode on port 5000
+2026-08-14 14:21:05 [info]: Server running in development mode on port 5000
+2026-08-14 14:21:15 [info]: Server running in development mode on port 5000
+2026-08-14 14:21:26 [info]: Server running in development mode on port 5000
+2026-08-14 14:21:36 [info]: Server running in development mode on port 5000
+2026-08-14 14:21:54 [info]: Server running in development mode on port 5000
+2026-08-14 14:22:04 [info]: Server running in development mode on port 5000
+2026-08-14 14:22:14 [info]: Server running in development mode on port 5000
+2026-08-14 14:22:45 [info]: Server running in development mode on port 5000
+2026-08-14 14:25:58 [info]: Server running in development mode on port 5000
