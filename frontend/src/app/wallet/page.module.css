@@ -1,0 +1,187 @@
+.page { padding-bottom: 5rem; }
+
+/* ── Header ── */
+.pageHeader {
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-subtle);
+  padding: 2.5rem 0;
+  margin-bottom: 2.5rem;
+}
+.headerFlex { display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 1rem; }
+.breadcrumb {
+  font-family: var(--font-sub);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+}
+.breadcrumb a { color: var(--accent-orange); }
+.breadcrumb a:hover { text-decoration: underline; }
+.pageTitle {
+  font-family: var(--font-heading);
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ── Layout ── */
+.layout { display: grid; grid-template-columns: 300px 1fr; gap: 2rem; align-items: start; }
+
+/* ── Sidebar ── */
+.sidebar { display: flex; flex-direction: column; gap: 1.5rem; position: sticky; top: 80px; }
+
+.balanceCard {
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: 8px;
+  overflow: hidden;
+  text-align: center;
+}
+.balanceCardBar { height: 3px; background: linear-gradient(90deg, var(--accent-orange), var(--accent-yellow)); }
+.balanceCardInner { padding: 2rem 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
+.balanceLabel { font-family: var(--font-sub); font-size: 0.85rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-secondary); }
+.balanceAmount {
+  font-family: var(--font-heading);
+  font-size: 3rem;
+  font-weight: 900;
+  color: var(--accent-yellow);
+  text-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+  line-height: 1;
+}
+.currency { font-size: 1.2rem; vertical-align: super; color: var(--text-secondary); text-shadow: none; margin-right: 0.25rem; }
+.balanceActions { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.5rem; }
+.actionBtn { padding: 0.75rem 1rem; font-size: 0.9rem; justify-content: center; }
+
+.sideMenu { display: flex; flex-direction: column; gap: 0.25rem; }
+.menuBtn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-sub);
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-align: left;
+  padding: 1rem 1.25rem;
+  border-radius: 6px;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+.menuBtn:hover { background: rgba(255,255,255,0.03); color: var(--text-primary); }
+.menuBtnActive {
+  background: rgba(255, 107, 0, 0.08);
+  border-color: rgba(255, 107, 0, 0.2);
+  color: var(--accent-orange);
+}
+
+/* ── Main Content ── */
+.mainContent {}
+.contentCard {
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.contentCardBar { height: 2px; background: linear-gradient(90deg, var(--accent-orange), var(--accent-blue)); }
+.contentCardInner { padding: 2.5rem; }
+.sectionTitle { font-family: var(--font-heading); font-size: 1.8rem; font-weight: 900; text-transform: uppercase; margin-bottom: 0.5rem; }
+.sectionSub { color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 2rem; }
+
+/* ── Table ── */
+.tableWrap { overflow-x: auto; }
+.table { width: 100%; border-collapse: collapse; }
+.table th {
+  text-align: left;
+  padding: 1rem;
+  background: rgba(255,255,255,0.02);
+  border-bottom: 1px solid var(--border-subtle);
+  font-family: var(--font-sub);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.table td { padding: 1.25rem 1rem; border-bottom: 1px solid var(--border-subtle); vertical-align: middle; }
+.table tr:last-child td { border-bottom: none; }
+.textRight { text-align: right; }
+.textSuccess { color: var(--success); }
+.textDanger { color: var(--danger); }
+
+.tdDate { font-size: 0.85rem; color: var(--text-secondary); white-space: nowrap; }
+.tdDesc { display: flex; flex-direction: column; gap: 0.2rem; }
+.txType { font-family: var(--font-sub); font-size: 0.85rem; font-weight: 700; color: var(--text-primary); }
+.txRef { font-size: 0.75rem; color: var(--text-muted); }
+.tdAmount { font-family: var(--font-heading); font-size: 1.1rem; font-weight: 800; white-space: nowrap; }
+
+/* ── Forms ── */
+.form { display: flex; flex-direction: column; gap: 1.5rem; max-width: 500px; }
+.fieldGroup { display: flex; flex-direction: column; gap: 0.6rem; }
+.label { font-family: var(--font-sub); font-size: 0.85rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-secondary); }
+.input {
+  width: 100%;
+  padding: 0.85rem 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-card);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  outline: none;
+  transition: all 0.2s;
+}
+.input:focus { border-color: var(--accent-orange); background: rgba(255,107,0,0.03); }
+.hint { font-size: 0.75rem; color: var(--text-muted); }
+
+.paymentMethods { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 1rem; }
+.hiddenRadio { position: absolute; opacity: 0; pointer-events: none; }
+.paymentCard {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem 1rem;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border-card);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.paymentCard:hover { border-color: rgba(255,107,0,0.3); }
+.paymentCardActive { border-color: var(--accent-orange); background: rgba(255,107,0,0.08); box-shadow: inset 0 0 0 1px var(--accent-orange); }
+.methodName { font-family: var(--font-sub); font-size: 0.9rem; font-weight: 700; letter-spacing: 0.05em; color: var(--text-primary); }
+
+.submitBtn { justify-content: center; padding: 1rem; }
+
+.alertBox {
+  padding: 1rem;
+  background: rgba(0,200,255,0.05);
+  border: 1px solid rgba(0,200,255,0.2);
+  border-radius: 6px;
+  color: var(--accent-blue);
+  font-size: 0.9rem;
+  margin-bottom: 2rem;
+}
+
+/* ── Spinner ── */
+.spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Responsive */
+@media (max-width: 800px) {
+  .layout { grid-template-columns: 1fr; }
+  .sidebar { position: static; flex-direction: column; }
+  .sideMenu { flex-direction: row; flex-wrap: wrap; }
+  .menuBtn { flex: 1; min-width: 120px; text-align: center; }
+  .contentCardInner { padding: 1.5rem; }
+}
