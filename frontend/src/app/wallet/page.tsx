@@ -37,6 +37,9 @@ export default function WalletPage() {
   // Deposit Form State
   const [depositAmount, setDepositAmount] = useState('');
   const [depositMethod, setDepositMethod] = useState('esewa');
+  const [depositTransactionId, setDepositTransactionId] = useState('');
+  const [depositReceiptUrl, setDepositReceiptUrl] = useState('');
+  const [isUploadingReceipt, setIsUploadingReceipt] = useState(false);
   const [depositLoading, setDepositLoading] = useState(false);
 
   // Withdraw Form State
@@ -49,14 +52,53 @@ export default function WalletPage() {
   const [redeemCode, setRedeemCode] = useState('');
   const [redeemLoading, setRedeemLoading] = useState(false);
 
+  const handleReceiptUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingReceipt(true);
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      
+      const token = localStorage.getItem('ngl_token') || localStorage.getItem('token');
+      const res = await fetch('http://localhost:5000/api/upload', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData
+      });
+      const data = await res.json();
+      
+      if (data.success) {
+        setDepositReceiptUrl(data.imageUrl);
+      } else {
+        alert(data.message || 'Upload failed');
+      }
+    } catch (err: any) {
+      alert('Error uploading image');
+    } finally {
+      setIsUploadingReceipt(false);
+    }
+  };
+
   const handleDeposit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!depositTransactionId || !depositReceiptUrl) {
+      alert('Transaction ID and Receipt Screenshot are required.');
+      return;
+    }
     setDepositLoading(true);
     try {
-      const res = await api.post('/wallet/deposit', { amount: depositAmount, method: depositMethod });
+      const res = await api.post('/deposits', { 
+        amount: depositAmount, 
+        transactionId: depositTransactionId, 
+        receiptUrl: depositReceiptUrl 
+      });
       if (res.success) {
-        alert('Deposit successful!');
+        alert('Deposit request submitted! Please wait for admin approval.');
         setDepositAmount('');
+        setDepositTransactionId('');
+        setDepositReceiptUrl('');
         refreshMe();
         setActiveTab('history');
       }
@@ -281,8 +323,46 @@ export default function WalletPage() {
                         </div>
                       </div>
 
-                      <button type="submit" className={`btn-primary ${styles.submitBtn}`} disabled={depositLoading}>
-                        {depositLoading ? <><span className={styles.spinner}/> Processing...</> : 'Proceed to Payment →'}
+                      <div style={{ backgroundColor: 'rgba(255,100,0,0.1)', padding: '1rem', borderRadius: '8px', marginBottom: '1.5rem', border: '1px solid rgba(255,100,0,0.2)' }}>
+                        <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--primary)' }}>Payment Details</h4>
+                        <p style={{ fontSize: '0.9rem', marginBottom: '0.5rem' }}>
+                          Please send exactly <strong>Rs {depositAmount || '0'}</strong> to the following {depositMethod.toUpperCase()} number:
+                        </p>
+                        <p style={{ fontSize: '1.2rem', fontWeight: 'bold', letterSpacing: '2px', color: '#fff' }}>98XXXXXXXX</p>
+                        <p style={{ fontSize: '0.8rem', color: '#aaa', marginTop: '0.5rem' }}>* Or scan the QR code within your app.</p>
+                      </div>
+
+                      <div className={styles.fieldGroup}>
+                        <label className={styles.label}>Transaction ID / Remarks</label>
+                        <input 
+                          type="text" 
+                          className={styles.input} 
+                          placeholder="Enter your payment Transaction ID" 
+                          value={depositTransactionId}
+                          onChange={(e) => setDepositTransactionId(e.target.value)}
+                          required 
+                        />
+                      </div>
+
+                      <div className={styles.fieldGroup}>
+                        <label className={styles.label}>Upload Receipt Screenshot</label>
+                        <input 
+                          type="file" 
+                          accept="image/*" 
+                          onChange={handleReceiptUpload} 
+                          disabled={isUploadingReceipt} 
+                          style={{ color: '#fff', fontSize: '0.9rem' }} 
+                        />
+                        {isUploadingReceipt && <span style={{ marginLeft: '10px', fontSize: '0.8rem', color: '#00c8ff' }}>Uploading...</span>}
+                        {depositReceiptUrl && (
+                          <div style={{ marginTop: '0.5rem' }}>
+                            <a href={depositReceiptUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#00ff88', fontSize: '0.8rem', textDecoration: 'underline' }}>View Uploaded Screenshot</a>
+                          </div>
+                        )}
+                      </div>
+
+                      <button type="submit" className={`btn-primary ${styles.submitBtn}`} disabled={depositLoading || isUploadingReceipt}>
+                        {depositLoading ? <><span className={styles.spinner}/> Submitting...</> : 'Submit Deposit Request →'}
                       </button>
                     </form>
                   </div>
