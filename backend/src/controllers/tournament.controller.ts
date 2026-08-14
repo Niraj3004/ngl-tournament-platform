@@ -2,7 +2,6 @@ import { Request, Response } from 'express';
 import { Match } from '../models/match.model';
 import { writeAuditLog } from '../services/audit.service';
 import { AuthRequest } from '../middlewares/auth.middleware';
-import mongoose from 'mongoose';
 import { MatchParticipant } from '../models/matchParticipant.model';
 import { writeTxn } from '../services/ledger.service';
 import { v4 as uuidv4 } from 'uuid';
@@ -23,7 +22,6 @@ export const getTournamentById = async (req: Request, res: Response) => {
   try {
     const { matchId } = req.params;
     
-    // Check if user is authenticated
     let uid = null;
     let isAdmin = false;
     if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
@@ -37,13 +35,10 @@ export const getTournamentById = async (req: Request, res: Response) => {
       }
     }
 
-    // Default: exclude room details
-    let selectFields = '-roomDetails';
     let hasJoined = false;
     let participantData = null;
 
     if (uid) {
-      // Check if user has joined this match
       const p = await MatchParticipant.findOne({ matchId, uid });
       if (p) {
         hasJoined = true;
@@ -53,10 +48,6 @@ export const getTournamentById = async (req: Request, res: Response) => {
 
     const match = await Match.findById(matchId);
     if (!match) return res.status(404).json({ success: false, message: 'Tournament not found' });
-
-    // If admin, or if (joined AND status is room_revealed), we want roomDetails.
-    // Since we didn't populate it initially, let's just use the `match` object. 
-    // We can manually strip `roomDetails` if they are NOT allowed to see it.
     
     const matchObj = match.toObject();
     if (!isAdmin && !(hasJoined && match.status === 'room_revealed')) {
@@ -98,54 +89,51 @@ export const updateTournament = async (req: AuthRequest, res: Response) => {
 };
 
 export const changeTournamentLifecycle = async (req: AuthRequest, res: Response) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
   try {
     const { matchId } = req.params;
-    const { action } = req.body; 
+    const { targetState, action } = req.body;
 
-    const match = await Match.findById(matchId).session(session);
+    const match = await Match.findById(matchId);
     if (!match) throw new Error('Tournament not found');
 
-    let newStatus = match.status;
-    switch (action) {
-      case 'publish': newStatus = 'open'; break;
-      case 'closeRegistration': newStatus = 'registration_closed'; break;
-      case 'revealRoom': newStatus = 'room_revealed'; break;
-      case 'start': newStatus = 'started'; break;
-      case 'complete': newStatus = 'completed'; break;
-      case 'cancel': newStatus = 'cancelled'; break;
-      default: throw new Error('Invalid lifecycle action');
+    let newStatus = targetState || match.status;
+    if (action) {
+      switch (action) {
+        case 'publish': newStatus = 'open'; break;
+        case 'closeRegistration': newStatus = 'registration_closed'; break;
+        case 'revealRoom': newStatus = 'room_revealed'; break;
+        case 'start': newStatus = 'started'; break;
+        case 'complete': newStatus = 'completed'; break;
+        case 'cancel': newStatus = 'cancelled'; break;
+        default: throw new Error('Invalid lifecycle action');
+      }
     }
 
-    if (action === 'cancel' && match.status !== 'cancelled') {
+    if ((newStatus === 'cancelled') && match.status !== 'cancelled') {
       // Refund all participants
-      const participants = await MatchParticipant.find({ matchId, status: 'joined' }).session(session);
+      const participants = await MatchParticipant.find({ matchId, status: 'joined' });
       for (const p of participants) {
         if (p.entryFeePaid > 0) {
           await writeTxn(
             p.uid,
             'refund',
-            p.entryFeePaid, // Credit back
+            p.entryFeePaid,
             { description: `Refund for cancelled tournament: ${match.title}`, referenceId: match._id.toString() },
-            `refund_${match._id.toString()}_${p.uid}`,
-            session
+            `refund_${match._id.toString()}_${p.uid}`
           );
         }
         p.status = 'refunded';
-        await p.save({ session });
+        await p.save();
       }
     }
 
     match.status = newStatus as any;
-    await match.save({ session });
+    await match.save();
 
-    await writeAuditLog(req.user!.uid, `lifecycle_${action}`, { matchId: match._id, status: newStatus }, match._id.toString(), 'Match');
+    await writeAuditLog(req.user!.uid, `lifecycle_${newStatus}`, { matchId: match._id, status: newStatus }, match._id.toString(), 'Match');
     
-    // Create notification before committing if room revealed
     if (newStatus === 'room_revealed') {
-      const participants = await MatchParticipant.find({ matchId }).session(session);
+      const participants = await MatchParticipant.find({ matchId });
       if (participants.length > 0) {
         const notifications = participants.map(p => ({
           uid: p.uid,
@@ -153,36 +141,26 @@ export const changeTournamentLifecycle = async (req: AuthRequest, res: Response)
           type: 'tournament',
           relatedId: match._id.toString()
         }));
-        await Notification.insertMany(notifications, { session });
+        await Notification.insertMany(notifications);
       }
     }
-    
-    await session.commitTransaction();
-    session.endSession();
 
     res.status(200).json({ success: true, match });
   } catch (error: any) {
-    await session.abortTransaction();
-    session.endSession();
     res.status(400).json({ success: false, message: error.message });
   }
 };
 
 export const joinTournament = async (req: AuthRequest, res: Response) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
   try {
     const { matchId } = req.params;
     const { gameId } = req.body;
     const uid = req.user!.uid;
 
-    if (!gameId) {
-      throw new Error('In-game ID is required to join');
-    }
+    if (!gameId) throw new Error('In-game ID is required to join');
 
     // 1. Verify Match exists and is open
-    const match = await Match.findById(matchId).session(session);
+    const match = await Match.findById(matchId);
     if (!match) throw new Error('Tournament not found');
     if (match.status !== 'open') throw new Error('Registration is closed for this tournament');
     
@@ -190,61 +168,45 @@ export const joinTournament = async (req: AuthRequest, res: Response) => {
       throw new Error('Tournament is full');
     }
 
-    // 2. Check if already joined (the DB index also protects against this, but good to check)
-    const existingEntry = await MatchParticipant.findOne({ matchId, uid }).session(session);
-    if (existingEntry) {
-      throw new Error('You have already joined this tournament');
-    }
+    // 2. Check if already joined
+    const existingEntry = await MatchParticipant.findOne({ matchId, uid });
+    if (existingEntry) throw new Error('You have already joined this tournament');
 
     // 3. Deduct entry fee via Ledger (will throw if insufficient balance)
     if (match.entryFee > 0) {
       await writeTxn(
         uid,
         'tournament_entry',
-        -match.entryFee, // Negative for debit
+        -match.entryFee,
         { description: `Entry fee for ${match.title}`, referenceId: match._id.toString() },
-        `join_${match._id.toString()}_${uid}`,
-        session
+        `join_${match._id.toString()}_${uid}`
       );
     }
 
     // 4. Create participant record
-    await MatchParticipant.create(
-      [
-        {
-          matchId: match._id,
-          uid,
-          gameId,
-          entryFeePaid: match.entryFee,
-        },
-      ],
-      { session }
-    );
+    await MatchParticipant.create({
+      matchId: match._id,
+      uid,
+      gameId,
+      entryFeePaid: match.entryFee,
+    });
 
     // 5. Increment participant count on Match
     match.participantCount += 1;
-    await match.save({ session });
-
-    await session.commitTransaction();
-    session.endSession();
+    await match.save();
 
     res.status(200).json({ success: true, message: 'Successfully joined tournament' });
   } catch (error: any) {
-    await session.abortTransaction();
-    session.endSession();
     res.status(400).json({ success: false, message: error.message });
   }
 };
 
 export const distributePrizes = async (req: AuthRequest, res: Response) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
   try {
     const { matchId } = req.params;
     const { prizes } = req.body; // Array of { uid, amount }
 
-    const match = await Match.findById(matchId).session(session);
+    const match = await Match.findById(matchId);
     if (!match) throw new Error('Tournament not found');
     if (match.status !== 'completed') throw new Error('Tournament must be completed before distributing prizes');
 
@@ -253,17 +215,15 @@ export const distributePrizes = async (req: AuthRequest, res: Response) => {
         await writeTxn(
           prize.uid,
           'prize',
-          prize.amount, // Positive for credit
+          prize.amount,
           { description: `Prize for tournament: ${match.title}`, referenceId: match._id.toString() },
-          `prize_${match._id.toString()}_${prize.uid}_${uuidv4()}`, // Unique idempotency
-          session
+          `prize_${match._id.toString()}_${prize.uid}_${uuidv4()}`
         );
       }
     }
 
     await writeAuditLog(req.user!.uid, 'distribute_prizes', { matchId: match._id, totalPrizes: prizes.length }, match._id.toString(), 'Match');
 
-    // Create notifications for winners
     const notifications = prizes.filter((p: any) => p.amount > 0).map((p: any) => ({
       uid: p.uid,
       message: `Congratulations! You won Rs ${p.amount} in ${match.title}.`,
@@ -272,16 +232,11 @@ export const distributePrizes = async (req: AuthRequest, res: Response) => {
     }));
     
     if (notifications.length > 0) {
-      await Notification.insertMany(notifications, { session });
+      await Notification.insertMany(notifications);
     }
-
-    await session.commitTransaction();
-    session.endSession();
 
     res.status(200).json({ success: true, message: 'Prizes distributed successfully' });
   } catch (error: any) {
-    await session.abortTransaction();
-    session.endSession();
     res.status(400).json({ success: false, message: error.message });
   }
 };
@@ -291,7 +246,6 @@ export const getMyMatches = async (req: AuthRequest, res: Response) => {
     const uid = req.user?.uid;
     if (!uid) return res.status(401).json({ success: false, message: 'Unauthorized' });
 
-    // Fetch participant records and populate matchId
     const participants = await MatchParticipant.find({ uid }).populate('matchId').sort({ createdAt: -1 });
 
     const formattedMatches = participants.map(p => {
@@ -300,7 +254,6 @@ export const getMyMatches = async (req: AuthRequest, res: Response) => {
 
       const matchObj = matchDoc.toObject ? matchDoc.toObject() : matchDoc;
       
-      // Determine if roomDetails should be shown
       const canSeeRoom = 
         p.status === 'joined' && 
         matchObj.roomDetails &&
@@ -323,7 +276,7 @@ export const getMyMatches = async (req: AuthRequest, res: Response) => {
         },
         match: matchObj
       };
-    }).filter(Boolean); // Remove any nulls if match was deleted
+    }).filter(Boolean);
 
     res.status(200).json({ success: true, matches: formattedMatches });
   } catch (error: any) {

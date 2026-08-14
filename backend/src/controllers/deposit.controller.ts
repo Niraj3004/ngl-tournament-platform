@@ -1,5 +1,4 @@
 import { Response } from 'express';
-import mongoose from 'mongoose';
 import { Deposit } from '../models/deposit.model';
 import { writeTxn } from '../services/ledger.service';
 import { AuthRequest } from '../middlewares/auth.middleware';
@@ -40,20 +39,18 @@ export const getPendingDeposits = async (req: AuthRequest, res: Response) => {
 };
 
 export const approveDeposit = async (req: AuthRequest, res: Response) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
   try {
     const { depositId } = req.params;
     const adminUid = req.user!.uid;
 
-    const deposit = await Deposit.findById(depositId).session(session);
+    const deposit = await Deposit.findById(depositId);
     if (!deposit) throw new Error('Deposit not found');
     if (deposit.status !== 'pending') throw new Error('Deposit is not pending');
 
     // Update deposit status
     deposit.status = 'approved';
     deposit.processedBy = adminUid;
-    await deposit.save({ session });
+    await deposit.save();
 
     // Credit user's wallet
     await writeTxn(
@@ -61,16 +58,11 @@ export const approveDeposit = async (req: AuthRequest, res: Response) => {
       'deposit',
       deposit.amount,
       { description: 'Manual deposit approved', referenceId: deposit._id.toString() },
-      `deposit_approve_${deposit._id.toString()}`, // Idempotency key
-      session
+      `deposit_approve_${deposit._id.toString()}`
     );
 
-    await session.commitTransaction();
-    session.endSession();
     res.status(200).json({ success: true, message: 'Deposit approved', deposit });
   } catch (error: any) {
-    await session.abortTransaction();
-    session.endSession();
     res.status(400).json({ success: false, message: error.message });
   }
 };

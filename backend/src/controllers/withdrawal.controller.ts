@@ -1,5 +1,4 @@
 import { Response } from 'express';
-import mongoose from 'mongoose';
 import { Withdrawal } from '../models/withdrawal.model';
 import { lockFunds, resolveLockedFunds } from '../services/ledger.service';
 import { AuthRequest } from '../middlewares/auth.middleware';
@@ -11,9 +10,6 @@ import {
 } from '../services/email.service';
 
 export const requestWithdrawal = async (req: AuthRequest, res: Response) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
   try {
     const { amount, accountDetails } = req.body;
     const uid = req.user!.uid;
@@ -22,27 +18,20 @@ export const requestWithdrawal = async (req: AuthRequest, res: Response) => {
     if (!accountDetails) throw new Error('Account details are required');
 
     // 1. Create pending withdrawal record
-    const withdrawal = await Withdrawal.create(
-      [{
-        uid,
-        amount,
-        accountDetails,
-        status: 'pending',
-      }],
-      { session }
-    );
+    const withdrawal = await Withdrawal.create({
+      uid,
+      amount,
+      accountDetails,
+      status: 'pending',
+    });
 
     // 2. Lock the funds
     await lockFunds(
       uid,
       amount,
-      { description: 'Withdrawal requested', referenceId: withdrawal[0]._id.toString() },
-      `withdraw_req_${withdrawal[0]._id.toString()}`,
-      session
+      { description: 'Withdrawal requested', referenceId: withdrawal._id.toString() },
+      `withdraw_req_${withdrawal._id.toString()}`
     );
-
-    await session.commitTransaction();
-    session.endSession();
 
     // Send email notification
     const user = await User.findOne({ uid });
@@ -50,10 +39,8 @@ export const requestWithdrawal = async (req: AuthRequest, res: Response) => {
       sendWithdrawalRequestEmail(user.email, amount).catch(console.error);
     }
 
-    res.status(201).json({ success: true, withdrawal: withdrawal[0] });
+    res.status(201).json({ success: true, withdrawal });
   } catch (error: any) {
-    await session.abortTransaction();
-    session.endSession();
     res.status(400).json({ success: false, message: error.message });
   }
 };
@@ -96,14 +83,11 @@ export const approveWithdrawal = async (req: AuthRequest, res: Response) => {
 };
 
 export const markWithdrawalPaid = async (req: AuthRequest, res: Response) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
   try {
     const { withdrawalId } = req.params;
     const adminUid = req.user!.uid;
 
-    const withdrawal = await Withdrawal.findById(withdrawalId).session(session);
+    const withdrawal = await Withdrawal.findById(withdrawalId);
     if (!withdrawal) throw new Error('Withdrawal not found');
     if (withdrawal.status !== 'approved') throw new Error('Withdrawal must be approved before marking paid');
 
@@ -113,17 +97,13 @@ export const markWithdrawalPaid = async (req: AuthRequest, res: Response) => {
       withdrawal.amount,
       'paid',
       { description: 'Withdrawal paid out' },
-      `withdraw_paid_${withdrawal._id.toString()}`,
-      session
+      `withdraw_paid_${withdrawal._id.toString()}`
     );
 
     withdrawal.status = 'paid';
     withdrawal.processedBy = adminUid;
     withdrawal.processedAt = new Date();
-    await withdrawal.save({ session });
-
-    await session.commitTransaction();
-    session.endSession();
+    await withdrawal.save();
 
     // Send email notification
     const user = await User.findOne({ uid: withdrawal.uid });
@@ -133,16 +113,11 @@ export const markWithdrawalPaid = async (req: AuthRequest, res: Response) => {
 
     res.status(200).json({ success: true, message: 'Withdrawal marked as paid', withdrawal });
   } catch (error: any) {
-    await session.abortTransaction();
-    session.endSession();
     res.status(400).json({ success: false, message: error.message });
   }
 };
 
 export const rejectWithdrawal = async (req: AuthRequest, res: Response) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
   try {
     const { withdrawalId } = req.params;
     const { reason } = req.body;
@@ -150,7 +125,7 @@ export const rejectWithdrawal = async (req: AuthRequest, res: Response) => {
 
     if (!reason) throw new Error('Rejection reason is required');
 
-    const withdrawal = await Withdrawal.findById(withdrawalId).session(session);
+    const withdrawal = await Withdrawal.findById(withdrawalId);
     if (!withdrawal) throw new Error('Withdrawal not found');
     if (withdrawal.status === 'paid' || withdrawal.status === 'rejected' || withdrawal.status === 'cancelled') {
       throw new Error(`Cannot reject withdrawal with status: ${withdrawal.status}`);
@@ -162,18 +137,14 @@ export const rejectWithdrawal = async (req: AuthRequest, res: Response) => {
       withdrawal.amount,
       'refunded',
       { description: 'Withdrawal rejected/refunded', referenceId: withdrawal._id.toString() },
-      `withdraw_refund_${withdrawal._id.toString()}`,
-      session
+      `withdraw_refund_${withdrawal._id.toString()}`
     );
 
     withdrawal.status = 'rejected';
     withdrawal.rejectionReason = reason;
     withdrawal.processedBy = adminUid;
     withdrawal.processedAt = new Date();
-    await withdrawal.save({ session });
-
-    await session.commitTransaction();
-    session.endSession();
+    await withdrawal.save();
 
     // Send email notification
     const user = await User.findOne({ uid: withdrawal.uid });
@@ -183,8 +154,6 @@ export const rejectWithdrawal = async (req: AuthRequest, res: Response) => {
 
     res.status(200).json({ success: true, message: 'Withdrawal rejected and refunded', withdrawal });
   } catch (error: any) {
-    await session.abortTransaction();
-    session.endSession();
     res.status(400).json({ success: false, message: error.message });
   }
 };

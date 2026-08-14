@@ -1,4 +1,3 @@
-import mongoose from 'mongoose';
 import { Wallet } from '../models/wallet.model';
 import { WalletTransaction } from '../models/walletTransaction.model';
 import { isKeyUsed } from './idempotency.service';
@@ -24,18 +23,17 @@ export const writeTxn = async (
   type: 'deposit' | 'tournament_entry' | 'prize' | 'withdrawal' | 'refund' | 'referral_bonus' | 'signup_bonus' | 'admin_adjustment' | 'reversal',
   amount: number,
   meta: TxnMeta,
-  idempotencyKey: string,
-  session: mongoose.ClientSession
+  idempotencyKey: string
 ) => {
   // 1. Check Idempotency (prevent double-credit / double-debit)
-  const alreadyProcessed = await isKeyUsed(idempotencyKey, session);
+  const alreadyProcessed = await isKeyUsed(idempotencyKey);
   if (alreadyProcessed) {
     throw new Error('Idempotency error: This transaction has already been processed.');
   }
 
   // 2. Fetch Wallet with exclusive lock (if using transactions)
   // To avoid race conditions, we update the wallet directly using $inc and return the new document
-  const wallet = await Wallet.findOne({ uid }).session(session);
+  const wallet = await Wallet.findOne({ uid });
   if (!wallet) {
     throw new Error('Wallet not found');
   }
@@ -49,7 +47,7 @@ export const writeTxn = async (
   const updatedWallet = await Wallet.findOneAndUpdate(
     { uid },
     { $inc: { availableBalance: amount } },
-    { new: true, session }
+    { new: true }
   );
 
   if (!updatedWallet) {
@@ -68,8 +66,7 @@ export const writeTxn = async (
         referenceId: meta.referenceId,
         idempotencyKey,
       },
-    ],
-    { session }
+    ]
   );
 
   return updatedWallet;
@@ -79,13 +76,12 @@ export const lockFunds = async (
   uid: string,
   amount: number,
   meta: TxnMeta,
-  idempotencyKey: string,
-  session: mongoose.ClientSession
+  idempotencyKey: string
 ) => {
-  const alreadyProcessed = await isKeyUsed(idempotencyKey, session);
+  const alreadyProcessed = await isKeyUsed(idempotencyKey);
   if (alreadyProcessed) throw new Error('Idempotency error: This transaction has already been processed.');
 
-  const wallet = await Wallet.findOne({ uid }).session(session);
+  const wallet = await Wallet.findOne({ uid });
   if (!wallet) throw new Error('Wallet not found');
 
   if (wallet.availableBalance - amount < 0) {
@@ -95,7 +91,7 @@ export const lockFunds = async (
   const updatedWallet = await Wallet.findOneAndUpdate(
     { uid },
     { $inc: { availableBalance: -amount, lockedBalance: amount } },
-    { new: true, session }
+    { new: true }
   );
 
   if (!updatedWallet) throw new Error('Failed to update wallet');
@@ -109,8 +105,7 @@ export const lockFunds = async (
       description: meta.description + ' (Funds Locked)',
       referenceId: meta.referenceId,
       idempotencyKey,
-    }],
-    { session }
+    }]
   );
 
   return updatedWallet;
@@ -121,13 +116,12 @@ export const resolveLockedFunds = async (
   amount: number,
   action: 'paid' | 'refunded',
   meta: TxnMeta,
-  idempotencyKey: string,
-  session: mongoose.ClientSession
+  idempotencyKey: string
 ) => {
-  const alreadyProcessed = await isKeyUsed(idempotencyKey, session);
+  const alreadyProcessed = await isKeyUsed(idempotencyKey);
   if (alreadyProcessed) throw new Error('Idempotency error: This transaction has already been processed.');
 
-  const wallet = await Wallet.findOne({ uid }).session(session);
+  const wallet = await Wallet.findOne({ uid });
   if (!wallet) throw new Error('Wallet not found');
 
   if (wallet.lockedBalance - amount < 0) {
@@ -141,7 +135,7 @@ export const resolveLockedFunds = async (
   const updatedWallet = await Wallet.findOneAndUpdate(
     { uid },
     updateQuery,
-    { new: true, session }
+    { new: true }
   );
 
   if (!updatedWallet) throw new Error('Failed to update wallet');
@@ -156,8 +150,7 @@ export const resolveLockedFunds = async (
         description: meta.description + ' (Withdrawal Rejected/Refunded)',
         referenceId: meta.referenceId,
         idempotencyKey,
-      }],
-      { session }
+      }]
     );
   } else {
     // Optional: Log a 'paid' event, but it doesn't affect availableBalance so we skip it to avoid confusing the transaction ledger which tracks available balance changes.

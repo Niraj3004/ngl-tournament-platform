@@ -6,7 +6,6 @@ import { MatchParticipant } from '../models/matchParticipant.model';
 import { WalletTransaction } from '../models/walletTransaction.model';
 import { AdminAuditLog } from '../models/auditLog.model';
 import { AuthRequest } from '../middlewares/auth.middleware';
-import mongoose from 'mongoose';
 import { resolveLockedFunds, writeTxn } from '../services/ledger.service';
 import { Wallet } from '../models/wallet.model';
 import { v4 as uuidv4 } from 'uuid';
@@ -107,8 +106,6 @@ export const getPendingWithdrawals = async (req: AuthRequest, res: Response) => 
 };
 
 export const resolveWithdrawal = async (req: AuthRequest, res: Response) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
   try {
     const { id } = req.params; // Transaction ID of the locked funds
     const { action } = req.body; // 'paid' or 'refunded'
@@ -127,14 +124,13 @@ export const resolveWithdrawal = async (req: AuthRequest, res: Response) => {
       Math.abs(tx.amount), // tx.amount is negative
       action as 'paid' | 'refunded',
       { description: `Withdrawal ${action} by admin` },
-      idempotencyKey,
-      session
+      idempotencyKey
     );
     
     // Mark original tx description as resolved so it doesn't show in pending
     await WalletTransaction.findByIdAndUpdate(id, {
       description: tx.description + ' (Resolved)'
-    }, { session });
+    });
 
     // Create notification
     await Notification.create([{
@@ -142,15 +138,11 @@ export const resolveWithdrawal = async (req: AuthRequest, res: Response) => {
       message: `Your withdrawal request of Rs ${Math.abs(tx.amount)} has been ${action}.`,
       type: 'wallet',
       relatedId: tx._id.toString()
-    }], { session });
+    }]);
 
-    await session.commitTransaction();
     res.status(200).json({ success: true, message: `Withdrawal ${action} successfully` });
   } catch (error: any) {
-    await session.abortTransaction();
     res.status(500).json({ success: false, message: error.message });
-  } finally {
-    session.endSession();
   }
 };
 
@@ -164,13 +156,11 @@ export const getPendingDeposits = async (req: AuthRequest, res: Response) => {
 };
 
 export const resolveDeposit = async (req: AuthRequest, res: Response) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
   try {
     const { id } = req.params;
     const { action } = req.body; // 'approved' or 'rejected'
 
-    const deposit = await Deposit.findById(id).session(session);
+    const deposit = await Deposit.findById(id);
     if (!deposit || deposit.status !== 'pending') {
       throw new Error('Invalid deposit request');
     }
@@ -184,12 +174,11 @@ export const resolveDeposit = async (req: AuthRequest, res: Response) => {
         'deposit',
         deposit.amount,
         { description: 'Manual Deposit Approved' },
-        `deposit_approve_${deposit._id}`,
-        session
+        `deposit_approve_${deposit._id}`
       );
     }
 
-    await deposit.save({ session });
+    await deposit.save();
     
     // Create notification
     await Notification.create([{
@@ -197,15 +186,11 @@ export const resolveDeposit = async (req: AuthRequest, res: Response) => {
       message: `Your deposit of Rs ${deposit.amount} has been ${action}.`,
       type: 'wallet',
       relatedId: deposit._id.toString()
-    }], { session });
+    }]);
 
-    await session.commitTransaction();
     res.status(200).json({ success: true, message: `Deposit ${action} successfully` });
   } catch (error: any) {
-    await session.abortTransaction();
     res.status(500).json({ success: false, message: error.message });
-  } finally {
-    session.endSession();
   }
 };
 
@@ -231,8 +216,6 @@ export const getUsers = async (req: AuthRequest, res: Response) => {
 };
 
 export const adjustUserBalance = async (req: AuthRequest, res: Response) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
   try {
     const uid = req.params.uid as string;
     const { amount, reason } = req.body;
@@ -244,8 +227,7 @@ export const adjustUserBalance = async (req: AuthRequest, res: Response) => {
       'admin_adjustment',
       Number(amount),
       { description: `Admin Adjustment: ${reason}` },
-      `admin_adj_${uuidv4()}`,
-      session
+      `admin_adj_${uuidv4()}`
     );
 
     // Create notification
@@ -253,15 +235,11 @@ export const adjustUserBalance = async (req: AuthRequest, res: Response) => {
       uid,
       message: `An admin adjusted your wallet balance by Rs ${amount}. Reason: ${reason}`,
       type: 'wallet'
-    }], { session });
+    }]);
 
-    await session.commitTransaction();
     res.status(200).json({ success: true, message: 'Balance adjusted successfully' });
   } catch (error: any) {
-    await session.abortTransaction();
     res.status(500).json({ success: false, message: error.message });
-  } finally {
-    session.endSession();
   }
 };
 

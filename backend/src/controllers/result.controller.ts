@@ -1,5 +1,4 @@
 import { Request, Response } from 'express';
-import mongoose from 'mongoose';
 import { Match } from '../models/match.model';
 import { MatchParticipant } from '../models/matchParticipant.model';
 import { writeTxn } from '../services/ledger.service';
@@ -7,6 +6,7 @@ import { AuthRequest } from '../middlewares/auth.middleware';
 import { Dispute } from '../models/dispute.model';
 import { User } from '../models/user.model';
 import { sendTournamentResultEmail } from '../services/email.service';
+import mongoose from 'mongoose';
 
 // Free Fire Standard Placement Points
 const PLACEMENT_POINTS: Record<number, number> = {
@@ -51,13 +51,10 @@ export const enterResult = async (req: AuthRequest, res: Response) => {
 };
 
 export const publishResults = async (req: AuthRequest, res: Response) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
   try {
     const { matchId } = req.params;
 
-    const match = await Match.findById(matchId).session(session);
+    const match = await Match.findById(matchId);
     if (!match) throw new Error('Match not found');
     if (match.status !== 'started' && match.status !== 'room_revealed') {
       throw new Error(`Cannot publish results from status: ${match.status}. Expected 'started'.`);
@@ -65,8 +62,7 @@ export const publishResults = async (req: AuthRequest, res: Response) => {
 
     // Fetch all participants and sort by points descending (then kills descending for tie breaker)
     const participants = await MatchParticipant.find({ matchId, status: 'joined' })
-      .sort({ points: -1, kills: -1 })
-      .session(session);
+      .sort({ points: -1, kills: -1 });
 
     if (participants.length === 0) {
       throw new Error('No active participants found to distribute prizes to');
@@ -82,26 +78,21 @@ export const publishResults = async (req: AuthRequest, res: Response) => {
       const prizeAmount = prizeVal ? Number(prizeVal) : 0;
 
       if (prizeAmount > 0) {
-        // Securely credit prize money
         await writeTxn(
           p.uid,
           'prize',
           prizeAmount,
           { description: `Prize for ranking #${rank} in ${match.title}`, referenceId: match._id.toString() },
-          `prize_${match._id.toString()}_${p.uid}`,
-          session
+          `prize_${match._id.toString()}_${p.uid}`
         );
         p.prizeWon = prizeAmount;
-        await p.save({ session });
+        await p.save();
       }
     }
 
     // Mark match as completed
     match.status = 'completed';
-    await match.save({ session });
-
-    await session.commitTransaction();
-    session.endSession();
+    await match.save();
 
     // Send emails in background
     (async () => {
@@ -115,8 +106,6 @@ export const publishResults = async (req: AuthRequest, res: Response) => {
 
     res.status(200).json({ success: true, message: 'Results published and prizes distributed successfully' });
   } catch (error: any) {
-    await session.abortTransaction();
-    session.endSession();
     res.status(400).json({ success: false, message: error.message });
   }
 };

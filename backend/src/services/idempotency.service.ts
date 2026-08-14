@@ -1,5 +1,4 @@
 import { WalletTransaction } from '../models/walletTransaction.model';
-import mongoose from 'mongoose';
 
 /**
  * Checks if an idempotency key has already been used.
@@ -7,9 +6,8 @@ import mongoose from 'mongoose';
  * but this is useful for checking beforehand.
  */
 export const isKeyUsed = async (
-  idempotencyKey: string,
-  session?: mongoose.ClientSession
+  idempotencyKey: string
 ): Promise<boolean> => {
-  const existing = await WalletTransaction.findOne({ idempotencyKey }).session(session || null);
+  const existing = await WalletTransaction.findOne({ idempotencyKey });
   return !!existing;
 };
