@@ -5,6 +5,7 @@ import { AuthRequest } from '../middlewares/auth.middleware';
 import mongoose from 'mongoose';
 import { MatchParticipant } from '../models/matchParticipant.model';
 import { writeTxn } from '../services/ledger.service';
+import { v4 as uuidv4 } from 'uuid';
 
 export const getAllTournaments = async (req: Request, res: Response) => {
   try {
@@ -167,6 +168,44 @@ export const joinTournament = async (req: AuthRequest, res: Response) => {
     session.endSession();
 
     res.status(200).json({ success: true, message: 'Successfully joined tournament' });
+  } catch (error: any) {
+    await session.abortTransaction();
+    session.endSession();
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+export const distributePrizes = async (req: AuthRequest, res: Response) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { matchId } = req.params;
+    const { prizes } = req.body; // Array of { uid, amount }
+
+    const match = await Match.findById(matchId).session(session);
+    if (!match) throw new Error('Tournament not found');
+    if (match.status !== 'completed') throw new Error('Tournament must be completed before distributing prizes');
+
+    for (const prize of prizes) {
+      if (prize.amount > 0) {
+        await writeTxn(
+          prize.uid,
+          'prize',
+          prize.amount, // Positive for credit
+          { description: `Prize for tournament: ${match.title}`, referenceId: match._id.toString() },
+          `prize_${match._id.toString()}_${prize.uid}_${uuidv4()}`, // Unique idempotency
+          session
+        );
+      }
+    }
+
+    await writeAuditLog(req.user!.uid, 'distribute_prizes', { matchId: match._id, totalPrizes: prizes.length }, match._id.toString(), 'Match');
+
+    await session.commitTransaction();
+    session.endSession();
+
+    res.status(200).json({ success: true, message: 'Prizes distributed successfully' });
   } catch (error: any) {
     await session.abortTransaction();
     session.endSession();

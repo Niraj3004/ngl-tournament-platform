@@ -6,8 +6,11 @@ import { WalletTransaction } from '../models/walletTransaction.model';
 import { AdminAuditLog } from '../models/auditLog.model';
 import { AuthRequest } from '../middlewares/auth.middleware';
 import mongoose from 'mongoose';
-import { resolveLockedFunds } from '../services/ledger.service';
+import { resolveLockedFunds, writeTxn } from '../services/ledger.service';
 import { Wallet } from '../models/wallet.model';
+import { Deposit } from '../models/deposit.model';
+import { User } from '../models/user.model';
+import { v4 as uuidv4 } from 'uuid';
 
 export const getDashboardMetrics = async (req: AuthRequest, res: Response) => {
   try {
@@ -135,6 +138,102 @@ export const resolveWithdrawal = async (req: AuthRequest, res: Response) => {
 
     await session.commitTransaction();
     res.status(200).json({ success: true, message: `Withdrawal ${action} successfully` });
+  } catch (error: any) {
+    await session.abortTransaction();
+    res.status(500).json({ success: false, message: error.message });
+  } finally {
+    session.endSession();
+  }
+};
+
+export const getPendingDeposits = async (req: AuthRequest, res: Response) => {
+  try {
+    const deposits = await Deposit.find({ status: 'pending' }).sort({ createdAt: -1 });
+    res.status(200).json({ success: true, deposits });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const resolveDeposit = async (req: AuthRequest, res: Response) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const { id } = req.params;
+    const { action } = req.body; // 'approved' or 'rejected'
+
+    const deposit = await Deposit.findById(id).session(session);
+    if (!deposit || deposit.status !== 'pending') {
+      throw new Error('Invalid deposit request');
+    }
+
+    deposit.status = action as 'approved' | 'rejected';
+    deposit.processedBy = req.user!.uid;
+
+    if (action === 'approved') {
+      await writeTxn(
+        deposit.uid,
+        'deposit',
+        deposit.amount,
+        { description: 'Manual Deposit Approved' },
+        `deposit_approve_${deposit._id}`,
+        session
+      );
+    }
+
+    await deposit.save({ session });
+
+    await session.commitTransaction();
+    res.status(200).json({ success: true, message: `Deposit ${action} successfully` });
+  } catch (error: any) {
+    await session.abortTransaction();
+    res.status(500).json({ success: false, message: error.message });
+  } finally {
+    session.endSession();
+  }
+};
+
+export const getUsers = async (req: AuthRequest, res: Response) => {
+  try {
+    const users = await User.find().select('-password').sort({ createdAt: -1 });
+    
+    // We can also fetch balances, but for simplicity we'll just get all users
+    // Alternatively, aggregate with wallets
+    const usersWithBalances = await Promise.all(users.map(async (u) => {
+      const wallet = await Wallet.findOne({ uid: u.uid });
+      return {
+        ...u.toObject(),
+        availableBalance: wallet?.availableBalance || 0,
+        lockedBalance: wallet?.lockedBalance || 0,
+      };
+    }));
+
+    res.status(200).json({ success: true, users: usersWithBalances });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const adjustUserBalance = async (req: AuthRequest, res: Response) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const { uid } = req.params;
+    const { amount, reason } = req.body;
+    
+    if (!amount || amount === 0) throw new Error('Invalid amount');
+
+    await writeTxn(
+      uid,
+      'admin_adjustment',
+      Number(amount),
+      { description: `Admin Adjustment: ${reason}` },
+      `admin_adj_${uuidv4()}`,
+      session
+    );
+
+    await session.commitTransaction();
+    res.status(200).json({ success: true, message: 'Balance adjusted successfully' });
   } catch (error: any) {
     await session.abortTransaction();
     res.status(500).json({ success: false, message: error.message });

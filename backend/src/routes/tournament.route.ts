@@ -6,7 +6,8 @@ import {
   createTournament, 
   updateTournament, 
   changeTournamentLifecycle,
-  joinTournament
+  joinTournament,
+  distributePrizes
 } from '../controllers/tournament.controller';
 
 const router = Router();
@@ -22,5 +23,6 @@ router.post('/:matchId/join', requireAuth, joinTournament);
 router.post('/', requireAuth, requireAdmin, createTournament);
 router.put('/:matchId', requireAuth, requireAdmin, updateTournament);
 router.post('/:matchId/lifecycle', requireAuth, requireAdmin, changeTournamentLifecycle);
+router.post('/:matchId/prizes', requireAuth, requireAdmin, distributePrizes);
 
 export default router;

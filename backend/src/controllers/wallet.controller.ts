@@ -3,6 +3,7 @@ import { Request, Response } from 'express';
 import { WalletTransaction } from '../models/walletTransaction.model';
 import { writeTxn, lockFunds } from '../services/ledger.service';
 import { v4 as uuidv4 } from 'uuid';
+import { Deposit } from '../models/deposit.model';
 
 export const getMyTransactions = async (req: Request, res: Response) => {
   try {
@@ -25,14 +26,18 @@ export const requestDeposit = async (req: Request, res: Response) => {
     const uid = (req as any).user.uid;
     const { amount, method } = req.body;
     
-    // For now, auto-approve deposit for testing
-    await writeTxn(
-      uid,
-      'deposit',
-      Number(amount),
-      { description: `Deposit via ${method}` },
-      uuidv4(),
-      session
+    // Instead of auto-approving, we create a pending Deposit request
+    // In a real app, receiptUrl would come from a file upload (S3/Cloudinary)
+    // For now, we mock it.
+    await Deposit.create(
+      [{
+        uid,
+        amount: Number(amount),
+        receiptUrl: 'https://mock-receipt-url.com/receipt.jpg', // Mocked receipt
+        status: 'pending',
+        transactionId: uuidv4() // Or a user-provided ref number
+      }],
+      { session }
     );
 
     await session.commitTransaction();
