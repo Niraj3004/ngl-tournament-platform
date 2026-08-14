@@ -99,19 +99,23 @@ export default function LoginPage() {
                     disabled={loading}
                   >
                     {loading ? (
-                      <><span className={styles.spinner} /> Sending Code...</>
+                      <><span className={styles.spinner} /> Logging in...</>
                     ) : (
-                      'Send Login Code →'
+                      'Login →'
                     )}
                   </button>
                 </form>
 
               <div className={styles.divider}><span>OR</span></div>
 
-              <p className={styles.switchText}>
-                Don&apos;t have an account?{' '}
-                <Link href="/register" className={styles.switchLink}>Create one free</Link>
-              </p>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                <p>
+                  <Link href="/forgot-password" className={styles.switchLink}>Forgot Password?</Link>
+                </p>
+                <p>
+                  Don&apos;t have an account? <Link href="/register" className={styles.switchLink}>Create one</Link>
+                </p>
+              </div>
             </div>
           </div>
 
