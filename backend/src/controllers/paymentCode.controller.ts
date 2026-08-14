@@ -78,3 +78,12 @@ export const redeemPaymentCode = async (req: AuthRequest, res: Response) => {
     res.status(400).json({ success: false, message: error.message });
   }
 };
+
+export const getPaymentCodes = async (req: AuthRequest, res: Response) => {
+  try {
+    const codes = await PaymentCode.find().sort({ createdAt: -1 });
+    res.status(200).json({ success: true, codes });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};

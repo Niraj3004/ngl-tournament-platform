@@ -11,10 +11,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const navItems = [
     { name: 'Dashboard', path: '/admin', icon: '📊' },
+    { name: 'Analytics', path: '/admin/analytics', icon: '📈' },
     { name: 'Tournaments', path: '/admin/tournaments', icon: '🏆' },
     { name: 'Deposits', path: '/admin/deposits', icon: '💳' },
     { name: 'Withdrawals', path: '/admin/withdrawals', icon: '💸' },
+    { name: 'Payment Codes', path: '/admin/payment-codes', icon: '🎟️' },
     { name: 'Users', path: '/admin/users', icon: '👥' },
+    { name: 'Disputes', path: '/admin/disputes', icon: '⚖️' },
+    { name: 'Support', path: '/admin/support', icon: '🎧' },
+    { name: 'Settings', path: '/admin/settings', icon: '⚙️' },
     { name: 'System Logs', path: '/admin/logs', icon: '📜' },
   ];
 

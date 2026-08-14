@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { User } from '../models/user.model';
 import { Deposit } from '../models/deposit.model';
 import { Match } from '../models/match.model';
+import { MatchParticipant } from '../models/matchParticipant.model';
 import { WalletTransaction } from '../models/walletTransaction.model';
 import { AdminAuditLog } from '../models/auditLog.model';
 import { AuthRequest } from '../middlewares/auth.middleware';
@@ -261,5 +262,72 @@ export const adjustUserBalance = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ success: false, message: error.message });
   } finally {
     session.endSession();
+  }
+};
+
+export const getAnalytics = async (req: AuthRequest, res: Response) => {
+  try {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const usersOverTime = await User.aggregate([
+      { $match: { createdAt: { $gte: thirtyDaysAgo } } },
+      { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } }, count: { $sum: 1 } } },
+      { $sort: { _id: 1 } }
+    ]);
+
+    const revenueTrend = await WalletTransaction.aggregate([
+      { $match: { createdAt: { $gte: thirtyDaysAgo }, type: { $in: ['tournament_entry', 'prize'] } } },
+      { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } }, netAmount: { $sum: "$amount" } } },
+      { $sort: { _id: 1 } }
+    ]);
+    
+    const formattedRevenue = revenueTrend.map(r => ({ date: r._id, revenue: -r.netAmount }));
+
+    res.status(200).json({
+      success: true,
+      analytics: {
+        usersOverTime: usersOverTime.map(u => ({ date: u._id, users: u.count })),
+        revenueTrend: formattedRevenue
+      }
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const getSupportTickets = async (req: AuthRequest, res: Response) => {
+  try {
+    const { SupportTicket } = require('../models/supportTicket.model');
+    const tickets = await SupportTicket.find().sort({ createdAt: -1 });
+    res.status(200).json({ success: true, tickets });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const adminReplySupportTicket = async (req: AuthRequest, res: Response) => {
+  try {
+    const { SupportTicket } = require('../models/supportTicket.model');
+    const { ticketId } = req.params;
+    const { message, status } = req.body;
+    
+    const ticket = await SupportTicket.findById(ticketId);
+    if (!ticket) return res.status(404).json({ success: false, message: 'Ticket not found' });
+    
+    if (message) {
+      ticket.messages.push({
+        senderId: 'admin',
+        message,
+        createdAt: new Date()
+      });
+    }
+    
+    if (status) ticket.status = status;
+    
+    await ticket.save();
+    res.status(200).json({ success: true, ticket });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
   }
 };
