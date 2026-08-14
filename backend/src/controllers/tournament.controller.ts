@@ -8,6 +8,7 @@ import { writeTxn } from '../services/ledger.service';
 import { v4 as uuidv4 } from 'uuid';
 import jwt from 'jsonwebtoken';
 import { env } from '../config/env';
+import { Notification } from '../models/notification.model';
 
 export const getAllTournaments = async (req: Request, res: Response) => {
   try {
@@ -142,6 +143,20 @@ export const changeTournamentLifecycle = async (req: AuthRequest, res: Response)
 
     await writeAuditLog(req.user!.uid, `lifecycle_${action}`, { matchId: match._id, status: newStatus }, match._id.toString(), 'Match');
     
+    // Create notification before committing if room revealed
+    if (newStatus === 'room_revealed') {
+      const participants = await MatchParticipant.find({ matchId }).session(session);
+      if (participants.length > 0) {
+        const notifications = participants.map(p => ({
+          uid: p.uid,
+          message: `Room details have been revealed for ${match.title}! Check the tournament page.`,
+          type: 'tournament',
+          relatedId: match._id.toString()
+        }));
+        await Notification.insertMany(notifications, { session });
+      }
+    }
+    
     await session.commitTransaction();
     session.endSession();
 
@@ -247,6 +262,18 @@ export const distributePrizes = async (req: AuthRequest, res: Response) => {
     }
 
     await writeAuditLog(req.user!.uid, 'distribute_prizes', { matchId: match._id, totalPrizes: prizes.length }, match._id.toString(), 'Match');
+
+    // Create notifications for winners
+    const notifications = prizes.filter((p: any) => p.amount > 0).map((p: any) => ({
+      uid: p.uid,
+      message: `Congratulations! You won Rs ${p.amount} in ${match.title}.`,
+      type: 'wallet',
+      relatedId: match._id.toString()
+    }));
+    
+    if (notifications.length > 0) {
+      await Notification.insertMany(notifications, { session });
+    }
 
     await session.commitTransaction();
     session.endSession();

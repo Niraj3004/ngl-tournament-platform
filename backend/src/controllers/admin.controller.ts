@@ -8,9 +8,8 @@ import { AuthRequest } from '../middlewares/auth.middleware';
 import mongoose from 'mongoose';
 import { resolveLockedFunds, writeTxn } from '../services/ledger.service';
 import { Wallet } from '../models/wallet.model';
-import { Deposit } from '../models/deposit.model';
-import { User } from '../models/user.model';
 import { v4 as uuidv4 } from 'uuid';
+import { Notification } from '../models/notification.model';
 
 export const getDashboardMetrics = async (req: AuthRequest, res: Response) => {
   try {
@@ -136,6 +135,14 @@ export const resolveWithdrawal = async (req: AuthRequest, res: Response) => {
       description: tx.description + ' (Resolved)'
     }, { session });
 
+    // Create notification
+    await Notification.create([{
+      uid: tx.uid,
+      message: `Your withdrawal request of Rs ${Math.abs(tx.amount)} has been ${action}.`,
+      type: 'wallet',
+      relatedId: tx._id.toString()
+    }], { session });
+
     await session.commitTransaction();
     res.status(200).json({ success: true, message: `Withdrawal ${action} successfully` });
   } catch (error: any) {
@@ -182,6 +189,14 @@ export const resolveDeposit = async (req: AuthRequest, res: Response) => {
     }
 
     await deposit.save({ session });
+    
+    // Create notification
+    await Notification.create([{
+      uid: deposit.uid,
+      message: `Your deposit of Rs ${deposit.amount} has been ${action}.`,
+      type: 'wallet',
+      relatedId: deposit._id.toString()
+    }], { session });
 
     await session.commitTransaction();
     res.status(200).json({ success: true, message: `Deposit ${action} successfully` });
@@ -231,6 +246,13 @@ export const adjustUserBalance = async (req: AuthRequest, res: Response) => {
       `admin_adj_${uuidv4()}`,
       session
     );
+
+    // Create notification
+    await Notification.create([{
+      uid,
+      message: `An admin adjusted your wallet balance by Rs ${amount}. Reason: ${reason}`,
+      type: 'wallet'
+    }], { session });
 
     await session.commitTransaction();
     res.status(200).json({ success: true, message: 'Balance adjusted successfully' });

@@ -134,3 +134,39 @@
   .actions { display: none; }
   .menuToggle { display: flex; }
 }
+
+.userMenu {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.notificationBell {
+  position: relative;
+  font-size: 1.25rem;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  transition: transform 0.2s ease;
+}
+
+.notificationBell:hover {
+  transform: scale(1.1);
+}
+
+.notificationBadge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background: var(--primary-orange);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: bold;
+  padding: 2px 6px;
+  border-radius: 10px;
+  line-height: 1;
+  transform: translate(25%, -25%);
+  box-shadow: 0 0 10px rgba(255, 107, 0, 0.5);
+}

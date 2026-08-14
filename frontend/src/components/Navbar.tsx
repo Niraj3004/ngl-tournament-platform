@@ -2,17 +2,39 @@
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '@/hooks/useAuth';
+import { api } from '@/lib/api';
 import styles from './Navbar.module.css';
 
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const { user, logout } = useAuth();
+  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
     window.addEventListener('scroll', onScroll);
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
+
+  useEffect(() => {
+    if (user) {
+      const fetchNotifications = async () => {
+        try {
+          const res = await api.get('/notifications');
+          if (res.success) {
+            const unread = res.notifications.filter((n: any) => !n.isRead).length;
+            setUnreadCount(unread);
+          }
+        } catch (e) {}
+      };
+      fetchNotifications();
+      // Optional: Polling could be added here
+      const interval = setInterval(fetchNotifications, 30000); // 30s
+      return () => clearInterval(interval);
+    }
+  }, [user]);
 
   return (
     <motion.nav
@@ -50,8 +72,26 @@ export default function Navbar() {
 
         {/* Actions */}
         <div className={styles.actions}>
-          <Link href="/login" className="btn-secondary">Login</Link>
-          <Link href="/register" className="btn-primary">⚡ Play Now</Link>
+          {user ? (
+            <div className={styles.userMenu}>
+              <Link href="/dashboard" className={styles.notificationBell}>
+                🔔
+                {unreadCount > 0 && (
+                  <span className={styles.notificationBadge}>{unreadCount}</span>
+                )}
+              </Link>
+              {user.role === 'admin' && (
+                <Link href="/admin" className="btn-secondary" style={{ padding: '0.5rem 1rem' }}>Admin</Link>
+              )}
+              <Link href="/dashboard" className="btn-primary" style={{ padding: '0.5rem 1rem' }}>Dashboard</Link>
+              <button onClick={logout} className="btn-secondary" style={{ padding: '0.5rem 1rem', border: 'none', background: 'transparent' }}>Logout</button>
+            </div>
+          ) : (
+            <>
+              <Link href="/login" className="btn-secondary">Login</Link>
+              <Link href="/register" className="btn-primary">⚡ Play Now</Link>
+            </>
+          )}
         </div>
 
         {/* Mobile Toggle */}
@@ -85,8 +125,20 @@ export default function Navbar() {
               </motion.div>
             ))}
             <div className={styles.mobileActions}>
-              <Link href="/login" className="btn-secondary" onClick={() => setMenuOpen(false)}>Login</Link>
-              <Link href="/register" className="btn-primary" onClick={() => setMenuOpen(false)}>⚡ Play Now</Link>
+              {user ? (
+                <>
+                  <Link href="/dashboard" className="btn-primary" onClick={() => setMenuOpen(false)}>Dashboard</Link>
+                  {user.role === 'admin' && (
+                    <Link href="/admin" className="btn-secondary" onClick={() => setMenuOpen(false)}>Admin Panel</Link>
+                  )}
+                  <button onClick={() => { logout(); setMenuOpen(false); }} className="btn-secondary" style={{ width: '100%' }}>Logout</button>
+                </>
+              ) : (
+                <>
+                  <Link href="/login" className="btn-secondary" onClick={() => setMenuOpen(false)}>Login</Link>
+                  <Link href="/register" className="btn-primary" onClick={() => setMenuOpen(false)}>⚡ Play Now</Link>
+                </>
+              )}
             </div>
           </motion.div>
         )}

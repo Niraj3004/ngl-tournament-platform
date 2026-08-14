@@ -1,0 +1,190 @@
+.page {
+  padding: 80px 0;
+  min-height: calc(100vh - 64px);
+  position: relative;
+  z-index: 1;
+}
+
+.header {
+  margin-bottom: 3rem;
+}
+
+.title {
+  font-family: var(--font-orbitron);
+  font-size: 3rem;
+  margin: 0 0 0.5rem 0;
+}
+
+.subtitle {
+  color: var(--text-secondary);
+  font-size: 1.125rem;
+  margin: 0;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 2rem;
+  align-items: start;
+}
+
+.card {
+  padding: 2rem;
+}
+
+.cardTitle {
+  font-size: 1.25rem;
+  margin: 0 0 1.5rem 0;
+  color: var(--text-main);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.cardHeaderRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.markReadBtn {
+  background: transparent;
+  border: none;
+  color: var(--primary-orange);
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.markReadBtn:hover {
+  opacity: 0.8;
+}
+
+.walletBox {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.walletRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.walletVal {
+  color: var(--text-main);
+  font-weight: bold;
+  font-size: 1.125rem;
+  font-family: var(--font-orbitron);
+}
+
+.divider {
+  height: 1px;
+  background: var(--border-color);
+  margin: 0.5rem 0;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.notifList {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-height: 500px;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+}
+
+.notifList::-webkit-scrollbar {
+  width: 6px;
+}
+
+.notifList::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.notifList::-webkit-scrollbar-thumb {
+  background: var(--primary-orange);
+  border-radius: 4px;
+}
+
+.notifItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1rem;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-color);
+  position: relative;
+  transition: background 0.3s ease;
+}
+
+.notifUnread {
+  background: rgba(255, 107, 0, 0.05);
+  border-color: rgba(255, 107, 0, 0.3);
+}
+
+.notifRead {
+  opacity: 0.7;
+}
+
+.notifIcon {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.notifContent {
+  flex: 1;
+}
+
+.notifMessage {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  color: var(--text-main);
+}
+
+.notifTime {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.readDot {
+  width: 12px;
+  height: 12px;
+  background: var(--primary-orange);
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(255, 107, 0, 0.5);
+  margin-top: 0.25rem;
+}
+
+.readDot:hover {
+  transform: scale(1.2);
+}
+
+.emptyNotif {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 8px;
+  border: 1px dashed var(--border-color);
+}
+
+@media (max-width: 992px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
