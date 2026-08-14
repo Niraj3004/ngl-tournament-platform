@@ -1,19 +1,19 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import ParticleBackground from '@/components/ParticleBackground';
+import { api } from '@/lib/api';
 import styles from './page.module.css';
 
-import { useEffect } from 'react';
-import { api } from '@/lib/api';
-
-const MODES = ['All', 'Solo', 'Duo', 'Squad'];
-const STATUSES = ['All', 'open', 'registration_closed', 'started', 'completed'];
+const MODES = ['All', 'Solo', 'Duo', 'Squad', 'Clash Squad'];
+const STATUSES = ['All', 'open', 'registration_closed', 'room_revealed', 'started', 'completed'];
 
 const STATUS_LABELS: Record<string, string> = {
   open: 'Open',
   registration_closed: 'Reg. Closed',
+  room_revealed: 'Room Revealed',
   started: 'Live Now',
   completed: 'Ended',
 };
@@ -21,6 +21,7 @@ const STATUS_LABELS: Record<string, string> = {
 const STATUS_CLASS: Record<string, string> = {
   open: 'badge-green',
   registration_closed: 'badge-yellow',
+  room_revealed: 'badge-blue',
   started: 'badge-orange',
   completed: '',
 };
@@ -38,7 +39,8 @@ export default function TournamentsPage() {
       try {
         const res = await api.get('/tournaments', false);
         if (res.success) {
-          setTournaments(res.tournaments);
+          // Filter out cancelled tournaments
+          setTournaments(res.matches.filter((m: any) => m.status !== 'cancelled'));
         }
       } catch (err) {
         console.error(err);
@@ -51,19 +53,20 @@ export default function TournamentsPage() {
 
   const filtered = tournaments.filter(t => {
     if (modeFilter !== 'All' && t.mode !== modeFilter) return false;
-    if (statusFilter !== 'All' && t.lifecycle !== statusFilter) return false;
+    if (statusFilter !== 'All' && t.status !== statusFilter) return false;
     if (search && !t.title.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
 
-  const activeTournaments = tournaments.filter(t => ['open', 'started'].includes(t.lifecycle)).length;
+  const activeTournaments = tournaments.filter(t => ['open', 'room_revealed', 'started'].includes(t.status)).length;
   const totalPrizePool = tournaments.reduce((acc, t) => acc + (t.prizePool || 0), 0);
 
   return (
     <>
+      <div className="scanlines" />
+      <ParticleBackground />
       <Navbar />
       <main className={styles.page}>
-        {/* Page Header */}
         <div className={styles.pageHeader}>
           <div className="container">
             <div className={styles.pageHeaderInner}>
@@ -84,7 +87,6 @@ export default function TournamentsPage() {
 
         <div className="container">
           <div className={styles.layout}>
-            {/* Sidebar Filters */}
             <aside className={styles.sidebar}>
               <div className={styles.filterCard}>
                 <div className={styles.filterCardBar} />
@@ -109,7 +111,6 @@ export default function TournamentsPage() {
                     {MODES.map(m => (
                       <button
                         key={m}
-                        id={`mode-filter-${m.toLowerCase()}`}
                         className={`${styles.filterBtn} ${modeFilter === m ? styles.filterBtnActive : ''}`}
                         onClick={() => setModeFilter(m)}
                       >
@@ -128,7 +129,6 @@ export default function TournamentsPage() {
                     {STATUSES.map(s => (
                       <button
                         key={s}
-                        id={`status-filter-${s}`}
                         className={`${styles.filterBtn} ${statusFilter === s ? styles.filterBtnActive : ''}`}
                         onClick={() => setStatusFilter(s)}
                       >
@@ -139,7 +139,6 @@ export default function TournamentsPage() {
                 </div>
               </div>
 
-              {/* Quick Stats */}
               <div className={styles.filterCard}>
                 <div className={styles.filterCardBar} />
                 <div className={styles.filterCardInner}>
@@ -158,10 +157,9 @@ export default function TournamentsPage() {
               </div>
             </aside>
 
-            {/* Main Grid */}
             <div className={styles.main}>
               {loading ? (
-                <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-muted)' }}>Loading tournaments...</div>
+                <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-secondary)' }}>Loading tournaments...</div>
               ) : filtered.length === 0 ? (
                 <div className={styles.emptyState}>
                   <div className={styles.emptyIcon}>🔍</div>
@@ -171,14 +169,14 @@ export default function TournamentsPage() {
               ) : (
                 <div className={styles.grid}>
                   {filtered.map(t => (
-                    <Link key={t.matchId} href={`/tournaments/${t.matchId}`} className={`glass-card ${styles.tCard}`}>
+                    <Link key={t._id} href={`/tournaments/${t._id}`} className={`glass-card ${styles.tCard}`}>
                       <div className={styles.tCardBar} />
                       <div className={styles.tCardBody}>
                         <div className={styles.tCardTop}>
                           <div className={styles.tCardBadges}>
                             <span className={`badge badge-orange`}>{t.mode}</span>
-                            <span className={`badge ${STATUS_CLASS[t.lifecycle] || ''}`}>
-                              {t.lifecycle === 'started' ? '🔴 ' : ''}{STATUS_LABELS[t.lifecycle]}
+                            <span className={`badge ${STATUS_CLASS[t.status] || ''}`}>
+                              {t.status === 'started' ? '🔴 ' : ''}{STATUS_LABELS[t.status] || t.status}
                             </span>
                           </div>
                           <span className={styles.tCardPrize}>
@@ -190,8 +188,8 @@ export default function TournamentsPage() {
 
                         <div className={styles.tCardMeta}>
                           <span>📍 {t.map}</span>
-                          <span>📅 {new Date(t.schedule.startTime).toLocaleDateString()}</span>
-                          <span>⏰ {new Date(t.schedule.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                          <span>📅 {new Date(t.matchTime).toLocaleDateString()}</span>
+                          <span>⏰ {new Date(t.matchTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                         </div>
 
                         <div className={styles.tCardDivider} />
@@ -206,14 +204,14 @@ export default function TournamentsPage() {
                             <div className={styles.slotBarBg}>
                               <div
                                 className={styles.slotBarFill}
-                                style={{ width: `${(t.currentParticipants / t.maxParticipants) * 100}%` }}
+                                style={{ width: `${(t.participantCount / t.maxParticipants) * 100}%` }}
                               />
                             </div>
-                            <span className={styles.slotText}>{t.currentParticipants}/{t.maxParticipants} Slots</span>
+                            <span className={styles.slotText}>{t.participantCount}/{t.maxParticipants} Slots</span>
                           </div>
 
-                          <div className={`${styles.viewBtn} ${t.lifecycle === 'open' ? styles.viewBtnOpen : styles.viewBtnClosed}`}>
-                            {t.lifecycle === 'open' ? 'Register →' : 'View Details →'}
+                          <div className={`${styles.viewBtn} ${t.status === 'open' ? styles.viewBtnOpen : styles.viewBtnClosed}`}>
+                            {t.status === 'open' ? 'Register →' : 'View Details →'}
                           </div>
                         </div>
                       </div>

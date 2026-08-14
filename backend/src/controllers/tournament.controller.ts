@@ -6,6 +6,8 @@ import mongoose from 'mongoose';
 import { MatchParticipant } from '../models/matchParticipant.model';
 import { writeTxn } from '../services/ledger.service';
 import { v4 as uuidv4 } from 'uuid';
+import jwt from 'jsonwebtoken';
+import { env } from '../config/env';
 
 export const getAllTournaments = async (req: Request, res: Response) => {
   try {
@@ -19,9 +21,53 @@ export const getAllTournaments = async (req: Request, res: Response) => {
 export const getTournamentById = async (req: Request, res: Response) => {
   try {
     const { matchId } = req.params;
-    const match = await Match.findById(matchId).select('-roomDetails');
+    
+    // Check if user is authenticated
+    let uid = null;
+    let isAdmin = false;
+    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+      const token = req.headers.authorization.split(' ')[1];
+      try {
+        const decoded = jwt.verify(token, env.jwtSecret) as { uid: string; role: string };
+        uid = decoded.uid;
+        isAdmin = decoded.role === 'admin';
+      } catch (e) {
+        // invalid token, treat as unauthenticated
+      }
+    }
+
+    // Default: exclude room details
+    let selectFields = '-roomDetails';
+    let hasJoined = false;
+    let participantData = null;
+
+    if (uid) {
+      // Check if user has joined this match
+      const p = await MatchParticipant.findOne({ matchId, uid });
+      if (p) {
+        hasJoined = true;
+        participantData = { gameId: p.gameId, entryFeePaid: p.entryFeePaid, status: p.status };
+      }
+    }
+
+    const match = await Match.findById(matchId);
     if (!match) return res.status(404).json({ success: false, message: 'Tournament not found' });
-    res.status(200).json({ success: true, match });
+
+    // If admin, or if (joined AND status is room_revealed), we want roomDetails.
+    // Since we didn't populate it initially, let's just use the `match` object. 
+    // We can manually strip `roomDetails` if they are NOT allowed to see it.
+    
+    const matchObj = match.toObject();
+    if (!isAdmin && !(hasJoined && match.status === 'room_revealed')) {
+      delete matchObj.roomDetails;
+    }
+
+    res.status(200).json({ 
+      success: true, 
+      match: matchObj,
+      hasJoined,
+      participantData
+    });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }
