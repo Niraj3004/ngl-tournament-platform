@@ -20,7 +20,7 @@ export default function AdminTournaments() {
   const fetchTournaments = async () => {
     try {
       const res = await api.get('/tournaments', false);
-      if (res.success) setTournaments(res.tournaments);
+      if (res.success) setTournaments(res.matches || []);
     } catch (err) {
       console.error(err);
     } finally {
