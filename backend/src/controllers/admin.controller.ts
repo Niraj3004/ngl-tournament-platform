@@ -233,7 +233,7 @@ export const adjustUserBalance = async (req: AuthRequest, res: Response) => {
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
-    const { uid } = req.params;
+    const uid = req.params.uid as string;
     const { amount, reason } = req.body;
     
     if (!amount || amount === 0) throw new Error('Invalid amount');

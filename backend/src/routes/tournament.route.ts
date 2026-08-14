@@ -1,22 +1,15 @@
 import { Router } from 'express';
 import { requireAuth, requireAdmin } from '../middlewares/auth.middleware';
-import { 
-  getAllTournaments, 
-  getTournamentById, 
-  createTournament, 
-  updateTournament, 
-  changeTournamentLifecycle,
-  joinTournament,
-  distributePrizes
-} from '../controllers/tournament.controller';
+import { getAllTournaments, getTournamentById, createTournament, updateTournament, changeTournamentLifecycle, joinTournament, distributePrizes, getMyMatches } from '../controllers/tournament.controller';
 
 const router = Router();
 
 // Public routes
 router.get('/', getAllTournaments);
-router.get('/:matchId', getTournamentById);
 
 // Player routes
+router.get('/my', requireAuth, getMyMatches);
+router.get('/:matchId', getTournamentById);
 router.post('/:matchId/join', requireAuth, joinTournament);
 
 // Admin routes

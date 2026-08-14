@@ -285,3 +285,48 @@ export const distributePrizes = async (req: AuthRequest, res: Response) => {
     res.status(400).json({ success: false, message: error.message });
   }
 };
+
+export const getMyMatches = async (req: AuthRequest, res: Response) => {
+  try {
+    const uid = req.user?.uid;
+    if (!uid) return res.status(401).json({ success: false, message: 'Unauthorized' });
+
+    // Fetch participant records and populate matchId
+    const participants = await MatchParticipant.find({ uid }).populate('matchId').sort({ createdAt: -1 });
+
+    const formattedMatches = participants.map(p => {
+      const matchDoc = p.matchId as any; 
+      if (!matchDoc) return null;
+
+      const matchObj = matchDoc.toObject ? matchDoc.toObject() : matchDoc;
+      
+      // Determine if roomDetails should be shown
+      const canSeeRoom = 
+        p.status === 'joined' && 
+        matchObj.roomDetails &&
+        (matchObj.status === 'room_revealed' || matchObj.status === 'started' || matchObj.status === 'completed' || new Date() >= new Date(matchObj.revealTime));
+      
+      if (!canSeeRoom) {
+        delete matchObj.roomDetails;
+      }
+
+      return {
+        participant: {
+          gameId: p.gameId,
+          status: p.status,
+          entryFeePaid: p.entryFeePaid,
+          kills: p.kills,
+          placement: p.placement,
+          points: p.points,
+          prizeWon: p.prizeWon,
+          joinedAt: p.joinedAt
+        },
+        match: matchObj
+      };
+    }).filter(Boolean); // Remove any nulls if match was deleted
+
+    res.status(200).json({ success: true, matches: formattedMatches });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};

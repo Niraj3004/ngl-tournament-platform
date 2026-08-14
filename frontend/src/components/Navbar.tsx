@@ -2,14 +2,14 @@
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import styles from './Navbar.module.css';
 
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const { user, logout } = useAuth();
+  const { user, logoutUser } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
@@ -68,6 +68,13 @@ export default function Navbar() {
               </Link>
             </li>
           ))}
+          {user && (
+            <li>
+              <Link href="/my-matches" className={styles.navLink}>
+                My Matches
+              </Link>
+            </li>
+          )}
         </ul>
 
         {/* Actions */}
@@ -84,7 +91,7 @@ export default function Navbar() {
                 <Link href="/admin" className="btn-secondary" style={{ padding: '0.5rem 1rem' }}>Admin</Link>
               )}
               <Link href="/dashboard" className="btn-primary" style={{ padding: '0.5rem 1rem' }}>Dashboard</Link>
-              <button onClick={logout} className="btn-secondary" style={{ padding: '0.5rem 1rem', border: 'none', background: 'transparent' }}>Logout</button>
+              <button onClick={logoutUser} className="btn-secondary" style={{ padding: '0.5rem 1rem', border: 'none', background: 'transparent' }}>Logout</button>
             </div>
           ) : (
             <>
@@ -127,11 +134,12 @@ export default function Navbar() {
             <div className={styles.mobileActions}>
               {user ? (
                 <>
+                  <Link href="/my-matches" className="btn-primary" onClick={() => setMenuOpen(false)} style={{ background: 'var(--bg-secondary)', border: '1px solid var(--accent-blue)', color: 'var(--accent-blue)' }}>My Matches</Link>
                   <Link href="/dashboard" className="btn-primary" onClick={() => setMenuOpen(false)}>Dashboard</Link>
                   {user.role === 'admin' && (
                     <Link href="/admin" className="btn-secondary" onClick={() => setMenuOpen(false)}>Admin Panel</Link>
                   )}
-                  <button onClick={() => { logout(); setMenuOpen(false); }} className="btn-secondary" style={{ width: '100%' }}>Logout</button>
+                  <button onClick={() => { logoutUser(); setMenuOpen(false); }} className="btn-secondary" style={{ width: '100%' }}>Logout</button>
                 </>
               ) : (
                 <>
