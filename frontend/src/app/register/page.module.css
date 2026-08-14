@@ -1,0 +1,48 @@
+@import url('../login/page.module.css');
+
+/* Register-specific extras */
+.required { color: var(--accent-orange); }
+.optional { color: var(--text-muted); font-size: 0.75em; font-weight: 400; }
+
+.fieldHint {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 0.25rem;
+}
+
+.errorMsg {
+  font-size: 0.85rem;
+  color: var(--danger);
+  text-align: center;
+  padding: 0.5rem;
+  background: rgba(255, 34, 68, 0.08);
+  border: 1px solid rgba(255, 34, 68, 0.2);
+  border-radius: 4px;
+}
+
+.termsText {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  text-align: center;
+  line-height: 1.5;
+}
+.termsLink { color: var(--accent-orange); }
+.termsLink:hover { text-decoration: underline; }
+
+.perks {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.perk {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-family: var(--font-sub);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.perkIcon { font-size: 1.2rem; }

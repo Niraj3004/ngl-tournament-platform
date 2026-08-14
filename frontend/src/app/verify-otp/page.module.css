@@ -1,0 +1,68 @@
+/* Reuse login styles */
+@import url('../login/page.module.css');
+
+/* Center layout override */
+.centerLayout {
+  justify-content: center;
+}
+
+/* OTP inputs */
+.otpRow {
+  display: flex;
+  gap: 0.6rem;
+  justify-content: center;
+}
+
+.otpInput {
+  width: 52px;
+  height: 60px;
+  text-align: center;
+  font-family: var(--font-heading);
+  font-size: 1.75rem;
+  font-weight: 800;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-card);
+  border-radius: 6px;
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+  caret-color: var(--accent-orange);
+}
+
+.otpInput:focus {
+  border-color: var(--accent-orange);
+  background: rgba(255, 107, 0, 0.05);
+  box-shadow: 0 0 0 3px rgba(255, 107, 0, 0.1);
+}
+
+.otpFilled {
+  border-color: rgba(255, 107, 0, 0.5);
+  color: var(--accent-orange);
+}
+
+.errorMsg {
+  font-size: 0.85rem;
+  color: var(--danger);
+  text-align: center;
+  padding: 0.5rem;
+  background: rgba(255, 34, 68, 0.08);
+  border: 1px solid rgba(255, 34, 68, 0.2);
+  border-radius: 4px;
+}
+
+.resendRow {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.resendText { color: var(--text-muted); }
+
+.resendLink {
+  color: var(--accent-blue);
+  font-weight: 600;
+  transition: color 0.2s;
+}
+.resendLink:hover { color: var(--accent-blue-light); }
